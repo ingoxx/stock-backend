@@ -14,8 +14,9 @@ type GoldenInfo struct {
 }
 
 type GoldenRepository interface {
-	GetGoldenInfo() ([]*GoldenInfo, error)
+	GetGoldenPriceList() ([]*GoldenInfo, error)
 	SetGoldenDiffPrice(price float64) error
 	SetGoldenSellPrice(price float64) error
 	SetGoldenBuyPrice(price float64) error
+	GetGoldenPriceRealTime() (string, error)
 }

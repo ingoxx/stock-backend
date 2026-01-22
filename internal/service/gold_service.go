@@ -10,8 +10,12 @@ func NewUserService(repo domain.GoldenRepository) *GoldenService {
 	return &GoldenService{repo: repo}
 }
 
-func (gs *GoldenService) GetGoldenInfo() ([]*domain.GoldenInfo, error) {
-	return gs.GetGoldenInfo()
+func (gs *GoldenService) GetGoldenPriceList() ([]*domain.GoldenInfo, error) {
+	return gs.repo.GetGoldenPriceList()
+}
+
+func (gs *GoldenService) GetGoldenPriceRealTime() (string, error) {
+	return gs.repo.GetGoldenPriceRealTime()
 }
 
 func (gs *GoldenService) SetGoldenDiffPrice(price float64) error {
