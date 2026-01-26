@@ -6,12 +6,8 @@ import (
 	"time"
 )
 
-var (
-	Rds *redis.Client
-)
-
-func init() {
-	Rds = redis.NewClient(
+func NewRedisClient() (*redis.Client, error) {
+	rds := redis.NewClient(
 		&redis.Options{
 			Addr:         configs.RedisHost,
 			DB:           configs.RedisDb,
@@ -25,7 +21,9 @@ func init() {
 		},
 	)
 
-	if err := Rds.Ping(); err != nil {
-		panic(err)
+	if err := rds.Ping(); err != nil {
+		return rds, err.Err()
 	}
+
+	return rds, nil
 }
