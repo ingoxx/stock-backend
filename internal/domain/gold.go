@@ -1,19 +1,13 @@
 package domain
 
-import "fmt"
-
-type GoldenPrice float64
-
-func (g GoldenPrice) Display() string {
-	return fmt.Sprintf("¥%.2f/g", g)
-}
+type GoldenPrice string
 
 type GoldenInfo struct {
-	Date  string
-	Price GoldenPrice
+	Date  string      `json:"date"`
+	Price GoldenPrice `json:"price"`
 }
 
-type GoldenRepository interface {
+type GoldenInfoRepository interface {
 	GetGoldenPriceList() ([]*GoldenInfo, error)
 	SetGoldenDiffPrice(price float64) error
 	SetGoldenSellPrice(price float64) error

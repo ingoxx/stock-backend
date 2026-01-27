@@ -3,6 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"github.com/ingoxx/stock-backend/internal/service"
+	"io"
+	"log"
 	"net/http"
 )
 
@@ -20,23 +22,49 @@ type SetGoldenPriceRequest struct {
 	SellPrice float64 `json:"sell_price"`
 }
 
-type GoldenPriceListResponse struct {
+type GoldenPriceResponse struct {
 	Code int         `json:"code"`
 	Msg  string      `json:"msg"`
 	Data interface{} `json:"data"`
 }
 
 func (gh *GoldenHandler) SetGoldenPriceHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (gh *GoldenHandler) GetGoldenPriceListHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
+	if r.Method != "POST" {
 		http.Error(w, "", 403)
 		return
 	}
 
-	if sign := r.FormValue("sign"); sign != "lqmlxb" {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	var sg SetGoldenPriceRequest
+	if err := json.Unmarshal(body, &sg); err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	var resp = GoldenPriceResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: "",
+	}
+
+	b, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, err.Error(), 200)
+		return
+	}
+
+	if _, err := w.Write(b); err != nil {
+		log.Printf("%s, fail to response, '%s'", r.URL, err.Error())
+	}
+}
+
+func (gh *GoldenHandler) GetGoldenPriceListHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
 		http.Error(w, "", 403)
 		return
 	}
@@ -47,7 +75,7 @@ func (gh *GoldenHandler) GetGoldenPriceListHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	var resp = GoldenPriceListResponse{
+	var resp = GoldenPriceResponse{
 		Code: 1000,
 		Msg:  "ok",
 		Data: list,
@@ -59,6 +87,8 @@ func (gh *GoldenHandler) GetGoldenPriceListHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	w.Write(b)
+	if _, err := w.Write(b); err != nil {
+		log.Printf("%s, fail to response, '%s'", r.URL, err.Error())
+	}
 
 }

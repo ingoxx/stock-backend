@@ -1,16 +1,21 @@
 package rds
 
 import (
+	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/configs"
-	"github.com/redis/go-redis"
+	"sync"
 	"time"
 )
 
-func NewRedisClient() (*redis.Client, error) {
+var (
+	lock sync.RWMutex
+)
+
+func NewRedisClient(db int) (*redis.Client, error) {
 	rds := redis.NewClient(
 		&redis.Options{
 			Addr:         configs.RedisHost,
-			DB:           configs.RedisDb,
+			DB:           db,
 			MinIdleConns: 5,
 			Password:     configs.RedisPwd,
 			PoolSize:     5,
@@ -26,4 +31,26 @@ func NewRedisClient() (*redis.Client, error) {
 	}
 
 	return rds, nil
+}
+
+func GetRedisClient(db int, rc map[int]*redis.Client) *redis.Client {
+	lock.RLock()
+	client, ok := rc[db]
+	lock.RUnlock()
+
+	if client != nil && ok {
+		return client
+	}
+
+	lock.Lock()
+	defer lock.Unlock()
+
+	nClient, err := NewRedisClient(db)
+	if err != nil {
+		panic(err)
+	}
+
+	rc[db] = nClient
+
+	return nClient
 }

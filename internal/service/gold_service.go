@@ -3,10 +3,10 @@ package service
 import "github.com/ingoxx/stock-backend/internal/domain"
 
 type GoldenService struct {
-	repo domain.GoldenRepository
+	repo domain.GoldenInfoRepository
 }
 
-func NewUserService(repo domain.GoldenRepository) *GoldenService {
+func NewUserService(repo domain.GoldenInfoRepository) *GoldenService {
 	return &GoldenService{repo: repo}
 }
 
