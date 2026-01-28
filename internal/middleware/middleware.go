@@ -6,11 +6,14 @@ import (
 	"github.com/ingoxx/stock-backend/cmd/server"
 	cusErr "github.com/ingoxx/stock-backend/internal/error"
 	"github.com/rs/cors"
+	"log"
 	"net/http"
 )
 
 func AuthMiddleware(next http.Handler, rc map[int]*redis.Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("recv [%s] request [%s] %s\n", r.RemoteAddr, r.Method, r.URL.String())
+
 		queryParams := r.URL.Query()
 		sign := queryParams.Get("sign")
 
@@ -43,11 +46,11 @@ func AuthMiddleware(next http.Handler, rc map[int]*redis.Client) http.Handler {
 func AllowCorsMiddleware(next http.Handler) http.Handler {
 	c := cors.New(cors.Options{
 		// 允许的域名列表
-		AllowedOrigins: []string{"http://localhost:8080", "http://localhost:11806", "http://localhost"},
+		AllowedOrigins: []string{"*"},
 		// 允许的方法
 		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodOptions},
 		// 允许的 Header
-		AllowedHeaders: []string{"Authorization", "Content-Type"},
+		AllowedHeaders: []string{"*"},
 		// 是否允许 Cookie
 		AllowCredentials: true,
 		// 开启调试模式（会在控制台打印 CORS 日志）

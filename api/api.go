@@ -23,9 +23,9 @@ func Start() {
 	mux.HandleFunc("/v1/golden/set", tollbooth.LimitFuncHandler(lmt, app.GoldenHandler.SetGoldenPriceHandler).ServeHTTP)
 
 	authMux := middleware.AuthMiddleware(mux, rdbConn)
-	corsMux := middleware.AllowCorsMiddleware(authMux)
+	//corsMux := middleware.AllowCorsMiddleware(authMux)
 
-	log.Println(fmt.Sprintf("Server started on :%d", configs.HttpPort))
+	log.Println(fmt.Sprintf("Server started on :%d, version: %s", configs.HttpPort, configs.Version))
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", configs.HttpPort), corsMux))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", configs.HttpPort), authMux))
 }

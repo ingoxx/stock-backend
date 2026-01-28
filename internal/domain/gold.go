@@ -12,5 +12,4 @@ type GoldenInfoRepository interface {
 	SetGoldenDiffPrice(price float64) error
 	SetGoldenSellPrice(price float64) error
 	SetGoldenBuyPrice(price float64) error
-	GetGoldenPriceRealTime() (string, error)
 }

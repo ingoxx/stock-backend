@@ -54,7 +54,7 @@ func (gr *GoldRepo) SetGoldenDiffPrice(price float64) error {
 	gr.mu.Lock()
 	defer gr.mu.Unlock()
 
-	np := fmt.Sprintf("%f", price)
+	np := fmt.Sprintf("%.2f", price)
 
 	return gr.client.Set("golden_pd", np, 0).Err()
 }
@@ -63,7 +63,7 @@ func (gr *GoldRepo) SetGoldenSellPrice(price float64) error {
 	gr.mu.Lock()
 	defer gr.mu.Unlock()
 
-	np := fmt.Sprintf("%f", price)
+	np := fmt.Sprintf("%.2f", price)
 
 	return gr.client.Set("sell_gold_price", np, 0).Err()
 }
@@ -72,7 +72,7 @@ func (gr *GoldRepo) SetGoldenBuyPrice(price float64) error {
 	gr.mu.Lock()
 	defer gr.mu.Unlock()
 
-	np := fmt.Sprintf("%f", price)
+	np := fmt.Sprintf("%.2f", price)
 
 	return gr.client.Set("buy_gold_price", np, 0).Err()
 }

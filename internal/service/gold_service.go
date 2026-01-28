@@ -14,12 +14,8 @@ func (gs *GoldenService) GetGoldenPriceList() ([]*domain.GoldenInfo, error) {
 	return gs.repo.GetGoldenPriceList()
 }
 
-func (gs *GoldenService) GetGoldenPriceRealTime() (string, error) {
-	return gs.repo.GetGoldenPriceRealTime()
-}
-
 func (gs *GoldenService) SetGoldenDiffPrice(price float64) error {
-	return gs.repo.SetGoldenBuyPrice(price)
+	return gs.repo.SetGoldenDiffPrice(price)
 }
 
 func (gs *GoldenService) SetGoldenBuyPrice(price float64) error {

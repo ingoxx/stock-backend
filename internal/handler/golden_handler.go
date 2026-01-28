@@ -42,13 +42,26 @@ func (gh *GoldenHandler) SetGoldenPriceHandler(w http.ResponseWriter, r *http.Re
 
 	var sg SetGoldenPriceRequest
 	if err := json.Unmarshal(body, &sg); err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, err.Error(), 200)
+		return
+	}
+
+	if err := gh.svc.SetGoldenBuyPrice(sg.BuyPrice); err != nil {
+		http.Error(w, err.Error(), 200)
+		return
+	}
+	if err := gh.svc.SetGoldenDiffPrice(sg.DiffPrice); err != nil {
+		http.Error(w, err.Error(), 200)
+		return
+	}
+	if err := gh.svc.SetGoldenSellPrice(sg.SellPrice); err != nil {
+		http.Error(w, err.Error(), 200)
 		return
 	}
 
 	var resp = GoldenPriceResponse{
 		Code: 1000,
-		Msg:  "ok",
+		Msg:  "设置成功",
 		Data: "",
 	}
 
