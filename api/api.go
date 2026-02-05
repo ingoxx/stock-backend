@@ -14,13 +14,15 @@ import (
 func Start() {
 	var rdbConn = make(map[int]*redis.Client)
 
-	app := server.NewGoldenApp(rdbConn)
+	goldenApp := server.NewGoldenApp(rdbConn)
+	stockApp := server.NewStockApp(rdbConn)
 
 	lmt := tollbooth.NewLimiter(configs.MaxReqFrequency, nil)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/golden/list", tollbooth.LimitFuncHandler(lmt, app.GoldenHandler.GetGoldenPriceListHandler).ServeHTTP)
-	mux.HandleFunc("/v1/golden/set", tollbooth.LimitFuncHandler(lmt, app.GoldenHandler.SetGoldenPriceHandler).ServeHTTP)
+	mux.HandleFunc("/v1/golden/list", tollbooth.LimitFuncHandler(lmt, goldenApp.GoldenHandler.GetGoldenPriceListHandler).ServeHTTP)
+	mux.HandleFunc("/v1/golden/set", tollbooth.LimitFuncHandler(lmt, goldenApp.GoldenHandler.SetGoldenPriceHandler).ServeHTTP)
+	mux.HandleFunc("/v1/stock/list", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockListHandler).ServeHTTP)
 
 	authMux := middleware.AuthMiddleware(mux, rdbConn)
 	//corsMux := middleware.AllowCorsMiddleware(authMux)

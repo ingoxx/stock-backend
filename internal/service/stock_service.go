@@ -11,5 +11,5 @@ func NewStockService(repo domain.StockInfoRepository) *StockService {
 }
 
 func (ss *StockService) GetStockList() ([]*domain.StockInfo, error) {
-	return nil, nil
+	return ss.repo.GetStockList()
 }
