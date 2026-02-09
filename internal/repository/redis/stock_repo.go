@@ -3,7 +3,6 @@ package redis
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/internal/domain"
 	"sync"
@@ -36,7 +35,6 @@ func (sr *StockRepo) GetStockList() ([]*domain.StockInfo, error) {
 			s := result[m]
 			bn := bytes.NewBufferString(s)
 			if err := json.Unmarshal(bn.Bytes(), &ds); err != nil {
-				fmt.Println("ERR >>> ", err, result[m])
 				return dss, err
 			}
 			dss = append(dss, &ds)
