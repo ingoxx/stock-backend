@@ -37,6 +37,7 @@ func (sr *StockRepo) GetStockList() ([]*domain.StockInfo, error) {
 			if err := json.Unmarshal(bn.Bytes(), &ds); err != nil {
 				return dss, err
 			}
+
 			dss = append(dss, &ds)
 		}
 	}

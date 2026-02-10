@@ -20,9 +20,9 @@ func NewRedisClient(db int) (*redis.Client, error) {
 			Password:     configs.RedisPwd,
 			PoolSize:     5,
 			PoolTimeout:  30 * time.Second,
-			DialTimeout:  10 * time.Second,
-			ReadTimeout:  10 * time.Second,
-			WriteTimeout: 10 * time.Second,
+			DialTimeout:  30 * time.Second,
+			ReadTimeout:  30 * time.Second,
+			WriteTimeout: 30 * time.Second,
 		},
 	)
 
