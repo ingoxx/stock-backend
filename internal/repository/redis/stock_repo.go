@@ -44,3 +44,20 @@ func (sr *StockRepo) GetStockList() ([]*domain.StockInfo, error) {
 
 	return dss, nil
 }
+
+func (sr *StockRepo) GetStockInfoForDataList(code string) ([]*domain.StockInfoForDate, error) {
+	var ds []*domain.StockInfoForDate
+	key := "stock_every_day_detail"
+
+	result, err := sr.client.HGet(key, code).Result()
+	if err != nil {
+		return ds, err
+	}
+
+	bn := bytes.NewBufferString(result)
+	if err := json.Unmarshal(bn.Bytes(), &ds); err != nil {
+		return ds, err
+	}
+
+	return ds, nil
+}
