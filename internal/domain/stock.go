@@ -44,14 +44,15 @@ type StockInfoForDate struct {
 	Turnover  float64     `json:"turnover"`
 }
 
-type IndustryStockInfo struct {
-	Name string       `json:"name"`
-	Data []*StockInfo `json:"data"`
+type StockIndustryMap struct {
+	Name  string `json:"name"`
+	Match int    `json:"match"`
 }
 
 type StockInfoRepository interface {
 	GetStockList() ([]*StockInfo, error)
 	GetStockInfoForDataList(code string) ([]*StockInfoForDate, error)
+	GetStockIndustryList() ([]*StockIndustryMap, error)
 }
 
 //type StockInfoForDateRepository interface {

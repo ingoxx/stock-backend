@@ -61,3 +61,20 @@ func (sr *StockRepo) GetStockInfoForDataList(code string) ([]*domain.StockInfoFo
 
 	return ds, nil
 }
+
+func (sr *StockRepo) GetStockIndustryList() ([]*domain.StockIndustryMap, error) {
+	var ds []*domain.StockIndustryMap
+	key := "industry_map"
+
+	result, err := sr.client.Get(key).Result()
+	if err != nil {
+		return ds, err
+	}
+
+	bn := bytes.NewBufferString(result)
+	if err := json.Unmarshal(bn.Bytes(), &ds); err != nil {
+		return ds, err
+	}
+
+	return ds, nil
+}
