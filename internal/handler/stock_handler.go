@@ -97,7 +97,7 @@ func (sh *StockHandler) GetStockIndustryListHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	var resp = GoldenPriceResponse{
+	var resp = StockResponse{
 		Code: 1000,
 		Msg:  "ok",
 		Data: list,
@@ -113,4 +113,62 @@ func (sh *StockHandler) GetStockIndustryListHandler(w http.ResponseWriter, r *ht
 		log.Printf("%s, fail to response, '%s'", r.URL, err.Error())
 	}
 
+}
+
+func (sh *StockHandler) GetIndustryStockUpDownHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	ud, err := sh.svc.GetIndustryStockUpDown()
+	if err != nil {
+		http.Error(w, err.Error(), 200)
+		return
+	}
+
+	var resp = StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: ud,
+	}
+
+	b, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, err.Error(), 200)
+		return
+	}
+
+	if _, err := w.Write(b); err != nil {
+		log.Printf("%s, fail to response, '%s'", r.URL, err.Error())
+	}
+}
+
+func (sh *StockHandler) GetStockMarketDataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	ud, err := sh.svc.GetStockMarketData()
+	if err != nil {
+		http.Error(w, err.Error(), 200)
+		return
+	}
+
+	var resp = StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: ud,
+	}
+
+	b, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, err.Error(), 200)
+		return
+	}
+
+	if _, err := w.Write(b); err != nil {
+		log.Printf("%s, fail to response, '%s'", r.URL, err.Error())
+	}
 }

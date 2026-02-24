@@ -49,10 +49,26 @@ type StockIndustryMap struct {
 	Match int    `json:"match"`
 }
 
+type StockIndustryUpDown struct {
+	Name   string `json:"name"`
+	Amount int    `json:"amount"`
+	Up     int32  `json:"up"`
+	Down   int32  `json:"down"`
+}
+
+type StockMarketData struct {
+	Total  int   `json:"total"`
+	Amount int   `json:"amount"`
+	Up     int32 `json:"up"`
+	Down   int32 `json:"down"`
+}
+
 type StockInfoRepository interface {
 	GetStockList() ([]*StockInfo, error)
 	GetStockInfoForDataList(code string) ([]*StockInfoForDate, error)
 	GetStockIndustryList() ([]*StockIndustryMap, error)
+	GetIndustryStockUpDown() ([]*StockIndustryUpDown, error)
+	GetStockMarketData() (StockMarketData, error)
 }
 
 //type StockInfoForDateRepository interface {

@@ -78,3 +78,34 @@ func (sr *StockRepo) GetStockIndustryList() ([]*domain.StockIndustryMap, error) 
 
 	return ds, nil
 }
+
+func (sr *StockRepo) GetIndustryStockUpDown() ([]*domain.StockIndustryUpDown, error) {
+	var ud []*domain.StockIndustryUpDown
+	result, err := sr.client.Get("industry_stock_up_down").Result()
+	if err != nil {
+		return ud, err
+	}
+
+	bn := bytes.NewBufferString(result)
+	if err := json.Unmarshal(bn.Bytes(), &ud); err != nil {
+		return ud, err
+	}
+
+	return ud, nil
+
+}
+
+func (sr *StockRepo) GetStockMarketData() (domain.StockMarketData, error) {
+	var md domain.StockMarketData
+	result, err := sr.client.Get("market_data").Result()
+	if err != nil {
+		return md, err
+	}
+
+	bn := bytes.NewBufferString(result)
+	if err := json.Unmarshal(bn.Bytes(), &md); err != nil {
+		return md, err
+	}
+
+	return md, nil
+}

@@ -21,3 +21,11 @@ func (ss *StockService) GetStockInfoForDataList(code string) ([]*domain.StockInf
 func (ss *StockService) GetStockIndustryList() ([]*domain.StockIndustryMap, error) {
 	return ss.repo.GetStockIndustryList()
 }
+
+func (ss *StockService) GetIndustryStockUpDown() ([]*domain.StockIndustryUpDown, error) {
+	return ss.repo.GetIndustryStockUpDown()
+}
+
+func (ss *StockService) GetStockMarketData() (domain.StockMarketData, error) {
+	return ss.repo.GetStockMarketData()
+}
