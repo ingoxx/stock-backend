@@ -3,6 +3,7 @@ package redis
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/internal/domain"
 	"sync"
@@ -106,6 +107,49 @@ func (sr *StockRepo) GetStockMarketData() (domain.StockMarketData, error) {
 	if err := json.Unmarshal(bn.Bytes(), &md); err != nil {
 		return md, err
 	}
+
+	return md, nil
+}
+
+func (sr *StockRepo) GetStockDataSwitch() error {
+	if err := sr.client.Set("run_stock", 1, 0).Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sr *StockRepo) GetStockDataStatus() error {
+	result, err := sr.client.Get("run_stock").Result()
+	if err != nil {
+		return err
+	}
+
+	if result != "2" {
+		return fmt.Errorf("still running")
+	}
+
+	return nil
+}
+
+func (sr *StockRepo) GetIndustryData(name string) ([]*domain.StockInfo, error) {
+	var md []*domain.StockInfo
+
+	result, err := sr.client.HGet("all_industry_data_ha", name).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	bn := bytes.NewBufferString(result)
+	if err := json.Unmarshal(bn.Bytes(), &md); err != nil {
+		return nil, err
+	}
+
+	if md == nil {
+		return nil, fmt.Errorf("fail to Unmarshal data")
+	}
+
+	fmt.Println(md)
 
 	return md, nil
 }

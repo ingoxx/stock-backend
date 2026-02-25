@@ -1,9 +1,8 @@
 package handler
 
 import (
-	"encoding/json"
 	"github.com/ingoxx/stock-backend/internal/service"
-	"log"
+	"github.com/ingoxx/stock-backend/utils"
 	"net/http"
 )
 
@@ -33,21 +32,11 @@ func (sh *StockHandler) GetStockListHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var resp = StockResponse{
+	utils.ResponseJSON(w, StockResponse{
 		Code: 1000,
 		Msg:  "ok",
 		Data: list,
-	}
-
-	b, err := json.Marshal(resp)
-	if err != nil {
-		http.Error(w, err.Error(), 200)
-		return
-	}
-
-	if _, err := w.Write(b); err != nil {
-		log.Printf("%s, fail to response, '%s'", r.URL, err.Error())
-	}
+	})
 }
 
 func (sh *StockHandler) GetStockInfoForDataListHandler(w http.ResponseWriter, r *http.Request) {
@@ -68,21 +57,11 @@ func (sh *StockHandler) GetStockInfoForDataListHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	var resp = StockResponse{
+	utils.ResponseJSON(w, StockResponse{
 		Code: 1000,
 		Msg:  "ok",
 		Data: list,
-	}
-
-	b, err := json.Marshal(resp)
-	if err != nil {
-		http.Error(w, err.Error(), 200)
-		return
-	}
-
-	if _, err := w.Write(b); err != nil {
-		log.Printf("%s, fail to response, '%s'", r.URL, err.Error())
-	}
+	})
 }
 
 func (sh *StockHandler) GetStockIndustryListHandler(w http.ResponseWriter, r *http.Request) {
@@ -97,21 +76,11 @@ func (sh *StockHandler) GetStockIndustryListHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	var resp = StockResponse{
+	utils.ResponseJSON(w, StockResponse{
 		Code: 1000,
 		Msg:  "ok",
 		Data: list,
-	}
-
-	b, err := json.Marshal(resp)
-	if err != nil {
-		http.Error(w, err.Error(), 200)
-		return
-	}
-
-	if _, err := w.Write(b); err != nil {
-		log.Printf("%s, fail to response, '%s'", r.URL, err.Error())
-	}
+	})
 
 }
 
@@ -127,21 +96,11 @@ func (sh *StockHandler) GetIndustryStockUpDownHandler(w http.ResponseWriter, r *
 		return
 	}
 
-	var resp = StockResponse{
+	utils.ResponseJSON(w, StockResponse{
 		Code: 1000,
 		Msg:  "ok",
 		Data: ud,
-	}
-
-	b, err := json.Marshal(resp)
-	if err != nil {
-		http.Error(w, err.Error(), 200)
-		return
-	}
-
-	if _, err := w.Write(b); err != nil {
-		log.Printf("%s, fail to response, '%s'", r.URL, err.Error())
-	}
+	})
 }
 
 func (sh *StockHandler) GetStockMarketDataHandler(w http.ResponseWriter, r *http.Request) {
@@ -156,19 +115,85 @@ func (sh *StockHandler) GetStockMarketDataHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	var resp = StockResponse{
+	utils.ResponseJSON(w, StockResponse{
 		Code: 1000,
 		Msg:  "ok",
 		Data: ud,
+	})
+
+}
+
+func (sh *StockHandler) GetStockDataSwitchHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", 403)
+		return
 	}
 
-	b, err := json.Marshal(resp)
-	if err != nil {
+	if err := sh.svc.GetStockDataSwitch(); err != nil {
 		http.Error(w, err.Error(), 200)
 		return
 	}
 
-	if _, err := w.Write(b); err != nil {
-		log.Printf("%s, fail to response, '%s'", r.URL, err.Error())
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "retrieving the latest data, pls wait a minute.",
+		Data: "",
+	})
+
+}
+
+func (sh *StockHandler) GetStockDataStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", 403)
+		return
 	}
+
+	if err := sh.svc.GetStockDataStatus(); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: "",
+	})
+}
+
+func (sh *StockHandler) GetIndustryDataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	queryParams := r.URL.Query()
+	name := queryParams.Get("name")
+	if name == "" {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  "required parameter 'name' is missing or empty.",
+			Data: "",
+		})
+		return
+	}
+
+	data, err := sh.svc.GetIndustryData(name)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
 }

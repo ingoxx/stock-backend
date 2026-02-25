@@ -29,3 +29,15 @@ func (ss *StockService) GetIndustryStockUpDown() ([]*domain.StockIndustryUpDown,
 func (ss *StockService) GetStockMarketData() (domain.StockMarketData, error) {
 	return ss.repo.GetStockMarketData()
 }
+
+func (ss *StockService) GetStockDataSwitch() error {
+	return ss.repo.GetStockDataSwitch()
+}
+
+func (ss *StockService) GetStockDataStatus() error {
+	return ss.repo.GetStockDataStatus()
+}
+
+func (ss *StockService) GetIndustryData(name string) ([]*domain.StockInfo, error) {
+	return ss.repo.GetIndustryData(name)
+}

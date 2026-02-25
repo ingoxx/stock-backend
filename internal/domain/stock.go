@@ -69,6 +69,9 @@ type StockInfoRepository interface {
 	GetStockIndustryList() ([]*StockIndustryMap, error)
 	GetIndustryStockUpDown() ([]*StockIndustryUpDown, error)
 	GetStockMarketData() (StockMarketData, error)
+	GetStockDataSwitch() error
+	GetStockDataStatus() error
+	GetIndustryData(name string) ([]*StockInfo, error)
 }
 
 //type StockInfoForDateRepository interface {
