@@ -150,8 +150,6 @@ func (sr *StockRepo) GetIndustryData(name string) ([]*domain.StockInfo, error) {
 		return nil, fmt.Errorf("fail to Unmarshal data")
 	}
 
-	fmt.Println(md)
-
 	return md, nil
 }
 
