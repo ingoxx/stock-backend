@@ -29,19 +29,15 @@ type StockInfo struct {
 	Amount        int         `json:"amount"`
 }
 
-type StockInfoForDate struct {
-	Change    json.Number `json:"change"`
-	Date      string      `json:"date"`
-	Symbol    string      `json:"symbol"`
-	Open      string      `json:"open"`
-	Close     string      `json:"close"`
-	High      string      `json:"high"`
-	Low       string      `json:"low"`
-	Volume    int         `json:"volume"`
-	Amount    float64     `json:"amount"`
-	Amplitude float64     `json:"amplitude"`
-	PctChg    float64     `json:"pct_chg"`
-	Turnover  float64     `json:"turnover"`
+type StockHistoryDate struct {
+	Day    string  `json:"day"`
+	Code   string  `json:"code"`
+	Open   string  `json:"open"`
+	High   string  `json:"high"`
+	Low    string  `json:"low"`
+	Volume string  `json:"volume"`
+	PctChg float64 `json:"pct_chg"`
+	Close  float64 `json:"close"`
 }
 
 type StockIndustryMap struct {
@@ -65,15 +61,16 @@ type StockMarketData struct {
 
 type StockInfoRepository interface {
 	GetStockList() ([]*StockInfo, error)
-	GetStockInfoForDataList(code string) ([]*StockInfoForDate, error)
+	GetStockInfoForDataList(code string) ([]*StockHistoryDate, error)
 	GetStockIndustryList() ([]*StockIndustryMap, error)
 	GetIndustryStockUpDown() ([]*StockIndustryUpDown, error)
 	GetStockMarketData() (StockMarketData, error)
 	GetStockDataSwitch() error
 	GetStockDataStatus() error
 	GetIndustryData(name string) ([]*StockInfo, error)
+	GetStockHistoryData(code string) ([]*StockHistoryDate, error)
 }
 
 //type StockInfoForDateRepository interface {
-//	GetStockInfoForDataList() ([]*StockInfoForDate, error)
+//	GetStockInfoForDataList() ([]*StockHistoryDate, error)
 //}

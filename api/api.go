@@ -30,11 +30,12 @@ func Start() {
 	mux.HandleFunc("/v1/stock/switch", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockDataSwitchHandler).ServeHTTP)
 	mux.HandleFunc("/v1/stock/run-status", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockDataStatusHandler).ServeHTTP)
 	mux.HandleFunc("/v1/stock/industry/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetIndustryDataHandler).ServeHTTP)
+	mux.HandleFunc("/v1/stock/history/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockCusDaysDataHandler).ServeHTTP)
 
 	authMux := middleware.AuthMiddleware(mux, rdbConn)
-	corsMux := middleware.AllowCorsMiddleware(authMux)
+	//corsMux := middleware.AllowCorsMiddleware(authMux)
 
 	log.Println(fmt.Sprintf("Server started on :%d, version: %s", configs.HttpPort, configs.Version))
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", configs.HttpPort), corsMux))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", configs.HttpPort), authMux))
 }

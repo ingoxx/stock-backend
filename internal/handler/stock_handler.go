@@ -197,3 +197,37 @@ func (sh *StockHandler) GetIndustryDataHandler(w http.ResponseWriter, r *http.Re
 		Data: data,
 	})
 }
+
+func (sh *StockHandler) GetStockCusDaysDataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	queryParams := r.URL.Query()
+	code := queryParams.Get("code")
+	if code == "" {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  "required parameter 'name' is missing or empty.",
+			Data: "",
+		})
+		return
+	}
+
+	data, err := sh.svc.GetStockHistoryData(code)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/internal/domain"
+	"os/exec"
 	"sync"
 )
 
@@ -46,8 +47,8 @@ func (sr *StockRepo) GetStockList() ([]*domain.StockInfo, error) {
 	return dss, nil
 }
 
-func (sr *StockRepo) GetStockInfoForDataList(code string) ([]*domain.StockInfoForDate, error) {
-	var ds []*domain.StockInfoForDate
+func (sr *StockRepo) GetStockInfoForDataList(code string) ([]*domain.StockHistoryDate, error) {
+	var ds []*domain.StockHistoryDate
 	key := "stock_every_day_detail"
 
 	result, err := sr.client.HGet(key, code).Result()
@@ -150,6 +151,27 @@ func (sr *StockRepo) GetIndustryData(name string) ([]*domain.StockInfo, error) {
 	}
 
 	fmt.Println(md)
+
+	return md, nil
+}
+
+func (sr *StockRepo) GetStockHistoryData(code string) ([]*domain.StockHistoryDate, error) {
+	var md []*domain.StockHistoryDate
+
+	command := exec.Command("/usr/local/python3.10/bin/python3.10", "/root/pyscript/spot/stock_history_data_real_time.py", code, "30")
+	if err := command.Run(); err != nil {
+		return md, err
+	}
+
+	result, err := sr.client.HGet("stock_every_day_detail", code).Result()
+	if err != nil {
+		return md, err
+	}
+
+	bn := bytes.NewBufferString(result)
+	if err := json.Unmarshal(bn.Bytes(), &md); err != nil {
+		return nil, err
+	}
 
 	return md, nil
 }
