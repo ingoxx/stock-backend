@@ -14,6 +14,10 @@ func (ss *StockService) GetStockList() ([]*domain.StockInfo, error) {
 	return ss.repo.GetStockList()
 }
 
+func (ss *StockService) GetStockInfoData(code string) (*domain.StockInfo, error) {
+	return ss.repo.GetStockInfoData(code)
+}
+
 func (ss *StockService) GetStockInfoForDataList(code string) ([]*domain.StockHistoryDate, error) {
 	return ss.repo.GetStockInfoForDataList(code)
 }

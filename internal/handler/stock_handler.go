@@ -1,9 +1,10 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/ingoxx/stock-backend/internal/service"
 	"github.com/ingoxx/stock-backend/utils"
-	"net/http"
 )
 
 type StockHandler struct {
@@ -216,6 +217,40 @@ func (sh *StockHandler) GetStockCusDaysDataHandler(w http.ResponseWriter, r *htt
 	}
 
 	data, err := sh.svc.GetStockHistoryData(code)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) GetStockInfoDataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	queryParams := r.URL.Query()
+	code := queryParams.Get("code")
+	if code == "" {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  "required parameter 'name' is missing or empty.",
+			Data: "",
+		})
+		return
+	}
+
+	data, err := sh.svc.GetStockInfoData(code)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,

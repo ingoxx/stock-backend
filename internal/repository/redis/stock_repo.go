@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/go-redis/redis"
-	"github.com/ingoxx/stock-backend/internal/domain"
 	"os/exec"
 	"sync"
+
+	"github.com/go-redis/redis"
+	"github.com/ingoxx/stock-backend/internal/domain"
 )
 
 type StockRepo struct {
@@ -172,4 +173,28 @@ func (sr *StockRepo) GetStockHistoryData(code string) ([]*domain.StockHistoryDat
 	}
 
 	return md, nil
+}
+
+func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
+	var keys = []string{"sh_a", "sz_a"}
+	var data string
+	var ds *domain.StockInfo
+	for _, k := range keys {
+		result, err := sr.client.HGet(k, code).Result()
+		if err != nil {
+			return nil, err
+		}
+
+		if result != "" {
+			data = result
+			break
+		}
+	}
+
+	md := bytes.NewBufferString(data)
+	if err := json.Unmarshal(md.Bytes(), &ds); err != nil {
+		return nil, err
+	}
+
+	return ds, nil
 }

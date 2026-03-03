@@ -2,13 +2,14 @@ package api
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/didip/tollbooth"
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/cmd/server"
 	"github.com/ingoxx/stock-backend/configs"
 	"github.com/ingoxx/stock-backend/internal/middleware"
-	"log"
-	"net/http"
 )
 
 func Start() {
@@ -31,6 +32,7 @@ func Start() {
 	mux.HandleFunc("/v1/stock/run-status", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockDataStatusHandler).ServeHTTP)
 	mux.HandleFunc("/v1/stock/industry/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetIndustryDataHandler).ServeHTTP)
 	mux.HandleFunc("/v1/stock/history/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockCusDaysDataHandler).ServeHTTP)
+	mux.HandleFunc("/v1/stock/info/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockInfoDataHandler).ServeHTTP)
 
 	authMux := middleware.AuthMiddleware(mux, rdbConn)
 	//corsMux := middleware.AllowCorsMiddleware(authMux)
