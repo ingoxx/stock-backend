@@ -33,6 +33,7 @@ func Start() {
 	mux.HandleFunc("/v1/stock/industry/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetIndustryDataHandler).ServeHTTP)
 	mux.HandleFunc("/v1/stock/history/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockCusDaysDataHandler).ServeHTTP)
 	mux.HandleFunc("/v1/stock/info/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockInfoDataHandler).ServeHTTP)
+	mux.HandleFunc("/v1/stock/real-time/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockRealTimeDataHandler).ServeHTTP)
 
 	authMux := middleware.AuthMiddleware(mux, rdbConn)
 	//corsMux := middleware.AllowCorsMiddleware(authMux)

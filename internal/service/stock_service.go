@@ -49,3 +49,7 @@ func (ss *StockService) GetIndustryData(name string) ([]*domain.StockInfo, error
 func (ss *StockService) GetStockHistoryData(code string) ([]*domain.StockHistoryDate, error) {
 	return ss.repo.GetStockHistoryData(code)
 }
+
+func (ss *StockService) GetStockRealTimeData(code string) ([]*domain.StockInfo, error) {
+	return ss.repo.GetStockRealTimeData(code)
+}

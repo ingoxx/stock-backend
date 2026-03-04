@@ -2,11 +2,13 @@ package redis
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os/exec"
 	"sync"
+	"time"
 
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/internal/domain"
@@ -158,7 +160,10 @@ func (sr *StockRepo) GetIndustryData(name string) ([]*domain.StockInfo, error) {
 func (sr *StockRepo) GetStockHistoryData(code string) ([]*domain.StockHistoryDate, error) {
 	var md []*domain.StockHistoryDate
 
-	command := exec.Command("/usr/local/python3.10/bin/python3.10", "/root/pyscript/spot/stock_history_data_real_time.py", code, "30")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	command := exec.CommandContext(ctx, "/usr/local/python3.10/bin/python3.10", "/root/pyscript/spot/stock_history_data.py", code, "30")
 	if err := command.Run(); err != nil {
 		return md, err
 	}
@@ -208,4 +213,41 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 	}
 
 	return ds, nil
+}
+
+func (sr *StockRepo) GetStockRealTimeData(code string) ([]*domain.StockInfo, error) {
+	ad, err := sr.client.HGetAll("stock_real_time_data").Result()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ad) > 10 {
+		return nil, fmt.Errorf("up to 10 self-selected stocks")
+	}
+
+	var md = make([]*domain.StockInfo, 0, len(ad))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	command := exec.CommandContext(ctx, "/usr/local/python3.10/bin/python3.10", "/root/pyscript/spot/stock_data_real_time.py", code)
+	if err := command.Run(); err != nil {
+		return md, err
+	}
+
+	nl, err := sr.client.HGetAll("stock_real_time_data").Result()
+	if err != nil {
+		return md, err
+	}
+
+	for _, v := range nl {
+		var sd domain.StockInfo
+		if err := json.Unmarshal([]byte(v), &sd); err != nil {
+			return nil, err
+		}
+
+		md = append(md, &sd)
+	}
+
+	return md, nil
 }

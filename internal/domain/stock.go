@@ -70,6 +70,7 @@ type StockInfoRepository interface {
 	GetIndustryData(name string) ([]*StockInfo, error)
 	GetStockHistoryData(code string) ([]*StockHistoryDate, error)
 	GetStockInfoData(code string) (*StockInfo, error)
+	GetStockRealTimeData(code string) ([]*StockInfo, error)
 }
 
 //type StockInfoForDateRepository interface {
