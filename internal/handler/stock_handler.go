@@ -244,7 +244,7 @@ func (sh *StockHandler) GetStockInfoDataHandler(w http.ResponseWriter, r *http.R
 	if code == "" {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,
-			Msg:  "required parameter 'name' is missing or empty.",
+			Msg:  "required parameter 'code' is missing or empty.",
 			Data: "",
 		})
 		return

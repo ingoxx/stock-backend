@@ -3,6 +3,7 @@ package redis
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"sync"
@@ -179,9 +180,15 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 	var keys = []string{"sh_a", "sz_a"}
 	var data string
 	var ds *domain.StockInfo
+
 	for _, k := range keys {
 		result, err := sr.client.HGet(k, code).Result()
+		fmt.Println(result, err)
 		if err != nil {
+			if errors.Is(err, redis.Nil) {
+				continue
+			}
+
 			return nil, err
 		}
 
@@ -189,6 +196,10 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 			data = result
 			break
 		}
+	}
+
+	if data == "" {
+		return nil, fmt.Errorf("%s not found", code)
 	}
 
 	md := bytes.NewBufferString(data)
