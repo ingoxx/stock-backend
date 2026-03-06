@@ -1,14 +1,21 @@
 package handler
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"strings"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/ingoxx/stock-backend/internal/service"
 	"github.com/ingoxx/stock-backend/utils"
 )
 
 type StockHandler struct {
 	svc *service.StockService
+	vd  *validator.Validate
 }
 
 type StockResponse struct {
@@ -17,8 +24,12 @@ type StockResponse struct {
 	Data interface{} `json:"data"`
 }
 
-func NewStockHandler(svc *service.StockService) *StockHandler {
-	return &StockHandler{svc: svc}
+type DelSelfSelectedStockReq struct {
+	Code string `json:"code" validate:"required"`
+}
+
+func NewStockHandler(svc *service.StockService, vd *validator.Validate) *StockHandler {
+	return &StockHandler{svc: svc, vd: vd}
 }
 
 func (sh *StockHandler) GetStockListHandler(w http.ResponseWriter, r *http.Request) {
@@ -298,5 +309,93 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
+	})
+}
+
+func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	data, err := sh.svc.GetStockRealTimeList()
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) DelSelfSelectedStockHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	var ssd DelSelfSelectedStockReq
+	if err := json.Unmarshal(body, &ssd); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	ssd.Code = strings.TrimSpace(ssd.Code)
+
+	if err := sh.vd.Struct(ssd); err != nil {
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			for _, e := range validationErrors {
+				utils.ResponseJSON(w, StockResponse{
+					Code: 1003,
+					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
+					Data: "",
+				})
+				return
+			}
+		}
+
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1003,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	if err := sh.svc.DelSelfSelectedStock(ssd.Code); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1004,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: "",
 	})
 }

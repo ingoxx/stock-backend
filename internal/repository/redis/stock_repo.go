@@ -12,11 +12,18 @@ import (
 
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/internal/domain"
+	"golang.org/x/sync/errgroup"
+)
+
+const (
+	pythonBin  = "/usr/local/python3.10/bin/python3.10"
+	pythonFile = "/root/pyscript/spot/stock_data_real_time.py"
 )
 
 type StockRepo struct {
 	mu     sync.RWMutex
 	client *redis.Client
+	wg     sync.WaitGroup
 }
 
 func NewStockRepo(client *redis.Client) domain.StockInfoRepository {
@@ -188,7 +195,7 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 
 	for _, k := range keys {
 		result, err := sr.client.HGet(k, code).Result()
-		fmt.Println(result, err)
+
 		if err != nil {
 			if errors.Is(err, redis.Nil) {
 				continue
@@ -207,47 +214,124 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 		return nil, fmt.Errorf("%s not found", code)
 	}
 
-	md := bytes.NewBufferString(data)
-	if err := json.Unmarshal(md.Bytes(), &ds); err != nil {
+	if err := json.Unmarshal([]byte(data), &ds); err != nil {
 		return nil, err
 	}
 
 	return ds, nil
 }
 
+// GetStockRealTimeData 实时获取某个行情数据
 func (sr *StockRepo) GetStockRealTimeData(code string) ([]*domain.StockInfo, error) {
-	ad, err := sr.client.HGetAll("stock_real_time_data").Result()
-	if err != nil {
+	const maxStocks = 10
+
+	if err := sr.checkStockLimit(maxStocks); err != nil {
 		return nil, err
 	}
 
-	if len(ad) > 10 {
-		return nil, fmt.Errorf("up to 10 self-selected stocks")
+	if err := sr.refreshStockRealTimeData(code); err != nil {
+		return nil, err
 	}
 
-	var md = make([]*domain.StockInfo, 0, len(ad))
+	return sr.loadStockRealTimeData()
+}
+
+// GetStockRealTimeList 从列表中获取每个最新行情数据
+func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
+	data, err := sr.loadStockRealTimeData()
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 {
+		return data, nil
+	}
+
+	var eg errgroup.Group
+	eg.SetLimit(10)
+
+	for _, item := range data {
+		code := item.Code
+
+		eg.Go(func() error {
+			if err := sr.refreshStockRealTimeData(code); err != nil {
+				return fmt.Errorf("refresh %s failed: %w", code, err)
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	return sr.loadStockRealTimeData()
+}
+
+func (sr *StockRepo) checkStockLimit(limit int) error {
+	const redisKey = "stock_real_time_data"
+
+	current, err := sr.client.HGetAll(redisKey).Result()
+	if err != nil {
+		return fmt.Errorf("get current stock data from redis: %w", err)
+	}
+	if len(current) >= limit {
+		return fmt.Errorf("up to %d self-selected stocks", limit)
+	}
+
+	return nil
+}
+
+func (sr *StockRepo) refreshStockRealTimeData(code string) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	command := exec.CommandContext(ctx, "/usr/local/python3.10/bin/python3.10", "/root/pyscript/spot/stock_data_real_time.py", code)
-	if err := command.Run(); err != nil {
-		return md, err
-	}
+	cmd := exec.CommandContext(ctx, pythonBin, pythonFile, code)
 
-	nl, err := sr.client.HGetAll("stock_real_time_data").Result()
+	out, err := cmd.CombinedOutput() // stdout + stderr
 	if err != nil {
-		return md, err
+		// 超时要单独判断，便于定位
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return fmt.Errorf("run realtime script timeout: %s", string(out))
+		}
+		return fmt.Errorf("run realtime script failed: %w, output: %s", err, string(out))
+	}
+	return nil
+}
+
+func (sr *StockRepo) loadStockRealTimeData() ([]*domain.StockInfo, error) {
+	const redisKey = "stock_real_time_data"
+
+	rawMap, err := sr.client.HGetAll(redisKey).Result()
+	if err != nil {
+		return nil, fmt.Errorf("get latest stock data from redis: %w", err)
 	}
 
-	for _, v := range nl {
-		var sd domain.StockInfo
-		if err := json.Unmarshal([]byte(v), &sd); err != nil {
+	result := make([]*domain.StockInfo, 0, len(rawMap))
+	for _, raw := range rawMap {
+		var info domain.StockInfo
+		if err := json.Unmarshal([]byte(raw), &info); err != nil {
+			return nil, fmt.Errorf("unmarshal stock info: %w", err)
+		}
+
+		rd, err := sr.GetStockInfoData(info.Code)
+		if err != nil {
 			return nil, err
 		}
 
-		md = append(md, &sd)
+		info.Industry = rd.Industry
+		info.MainBusiness = rd.MainBusiness
+
+		result = append(result, &info)
+	}
+	return result, nil
+}
+
+func (sr *StockRepo) DelSelfSelectedStock(code string) error {
+	const redisKey = "stock_real_time_data"
+	if err := sr.client.HDel(redisKey, code).Err(); err != nil {
+		return err
 	}
 
-	return md, nil
+	return nil
 }

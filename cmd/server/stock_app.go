@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/internal/handler"
 	rdbRepo "github.com/ingoxx/stock-backend/internal/repository/redis"
@@ -15,9 +16,10 @@ type StockApp struct {
 func NewStockApp(rc map[int]*redis.Client) *StockApp {
 	var db = 11
 	var client = rds.GetRedisClient(db, rc)
+	validate := validator.New()
 	stockRepo := rdbRepo.NewStockRepo(client)
 	stockSvc := service.NewStockService(stockRepo)
-	stockHandler := handler.NewStockHandler(stockSvc)
+	stockHandler := handler.NewStockHandler(stockSvc, validate)
 
 	return &StockApp{
 		StockHandler: stockHandler,

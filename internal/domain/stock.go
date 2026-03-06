@@ -71,6 +71,8 @@ type StockInfoRepository interface {
 	GetStockHistoryData(code string) ([]*StockHistoryDate, error)
 	GetStockInfoData(code string) (*StockInfo, error)
 	GetStockRealTimeData(code string) ([]*StockInfo, error)
+	GetStockRealTimeList() ([]*StockInfo, error)
+	DelSelfSelectedStock(code string) error
 }
 
 //type StockInfoForDateRepository interface {
