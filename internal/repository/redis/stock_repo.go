@@ -24,11 +24,13 @@ type StockRepo struct {
 	mu     sync.RWMutex
 	client *redis.Client
 	wg     sync.WaitGroup
+	eg     *errgroup.Group
 }
 
-func NewStockRepo(client *redis.Client) domain.StockInfoRepository {
+func NewStockRepo(client *redis.Client, eg *errgroup.Group) domain.StockInfoRepository {
 	return &StockRepo{
 		client: client,
+		eg:     eg,
 	}
 }
 
@@ -246,13 +248,13 @@ func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
 		return data, nil
 	}
 
-	var eg errgroup.Group
-	eg.SetLimit(10)
+	//var eg errgroup.Group
+	sr.eg.SetLimit(2)
 
 	for _, item := range data {
 		code := item.Code
 
-		eg.Go(func() error {
+		sr.eg.Go(func() error {
 			if err := sr.refreshStockRealTimeData(code); err != nil {
 				return fmt.Errorf("refresh %s failed: %w", code, err)
 			}
@@ -260,7 +262,7 @@ func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
 		})
 	}
 
-	if err := eg.Wait(); err != nil {
+	if err := sr.eg.Wait(); err != nil {
 		return nil, err
 	}
 
