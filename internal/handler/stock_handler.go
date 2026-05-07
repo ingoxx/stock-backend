@@ -286,16 +286,18 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 
 	queryParams := r.URL.Query()
 	code := queryParams.Get("code")
-	if code == "" {
+	price := queryParams.Get("price") // 委托价格
+	hold := queryParams.Get("hold")   // 买入数量
+	if code == "" || price == "" || hold == "" {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,
-			Msg:  "required parameter 'code' is missing or empty.",
+			Msg:  "required parameter 'code' or 'price', 'hold' is missing or empty.",
 			Data: "",
 		})
 		return
 	}
 
-	data, err := sh.svc.GetStockRealTimeData(code)
+	data, err := sh.svc.GetStockRealTimeData(code, price, hold)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,

@@ -224,14 +224,14 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 }
 
 // GetStockRealTimeData 实时获取某个行情数据
-func (sr *StockRepo) GetStockRealTimeData(code string) ([]*domain.StockInfo, error) {
+func (sr *StockRepo) GetStockRealTimeData(code, price, hold string) ([]*domain.StockInfo, error) {
 	const maxStocks = 10
 
 	if err := sr.checkStockLimit(maxStocks); err != nil {
 		return nil, err
 	}
 
-	if err := sr.refreshStockRealTimeData(code); err != nil {
+	if err := sr.refreshStockRealTimeData(code, price, hold); err != nil {
 		return nil, err
 	}
 
@@ -255,7 +255,7 @@ func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
 		code := item.Code
 
 		sr.eg.Go(func() error {
-			if err := sr.refreshStockRealTimeData(code); err != nil {
+			if err := sr.refreshStockRealTimeData(code, "", ""); err != nil {
 				return fmt.Errorf("refresh %s failed: %w", code, err)
 			}
 			return nil
@@ -283,12 +283,11 @@ func (sr *StockRepo) checkStockLimit(limit int) error {
 	return nil
 }
 
-func (sr *StockRepo) refreshStockRealTimeData(code string) error {
-
+func (sr *StockRepo) refreshStockRealTimeData(code, price, hold string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, pythonBin, pythonFile, code)
+	cmd := exec.CommandContext(ctx, pythonBin, pythonFile, code, price, hold)
 
 	out, err := cmd.CombinedOutput() // stdout + stderr
 	if err != nil {

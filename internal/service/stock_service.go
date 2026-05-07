@@ -50,8 +50,8 @@ func (ss *StockService) GetStockHistoryData(code string) ([]*domain.StockHistory
 	return ss.repo.GetStockHistoryData(code)
 }
 
-func (ss *StockService) GetStockRealTimeData(code string) ([]*domain.StockInfo, error) {
-	return ss.repo.GetStockRealTimeData(code)
+func (ss *StockService) GetStockRealTimeData(code, price, hold string) ([]*domain.StockInfo, error) {
+	return ss.repo.GetStockRealTimeData(code, price, hold)
 }
 
 func (ss *StockService) GetStockRealTimeList() ([]*domain.StockInfo, error) {

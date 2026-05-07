@@ -19,14 +19,20 @@ type StockInfo struct {
 	Low           string      `json:"low"`
 	Industry      string      `json:"industry"`
 	MainBusiness  string      `json:"main_business"`
+	AccountId     string      `json:"accountId,omitempty"` // A股，港股，美股
 	Ticktime      FormatTime  `json:"ticktime"`
 	Per           float64     `json:"per"`
 	Pb            float64     `json:"pb"`
 	Mktcap        float64     `json:"mktcap"`
 	Nmc           float64     `json:"nmc"`
+	Price         float64     `json:"price,omitempty"` // 买入价格
 	Turnoverratio float64     `json:"turnoverratio"`
 	Volume        int         `json:"volume"`
 	Amount        int         `json:"amount"`
+	Quantity      int         `json:"quantity"`           // 持仓数量
+	IsDeal        int         `json:"is_deal"`            // 是否已成交， 1：委托中，2：已成交
+	SellOff       int         `json:"sell_off,omitempty"` // 是否卖出，1：持有/买入，2：卖出
+
 }
 
 type StockHistoryDate struct {
@@ -70,7 +76,7 @@ type StockInfoRepository interface {
 	GetIndustryData(name string) ([]*StockInfo, error)
 	GetStockHistoryData(code string) ([]*StockHistoryDate, error)
 	GetStockInfoData(code string) (*StockInfo, error)
-	GetStockRealTimeData(code string) ([]*StockInfo, error)
+	GetStockRealTimeData(code, price, hold string) ([]*StockInfo, error)
 	GetStockRealTimeList() ([]*StockInfo, error)
 	DelSelfSelectedStock(code string) error
 }
