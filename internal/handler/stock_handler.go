@@ -24,8 +24,18 @@ type StockResponse struct {
 	Data interface{} `json:"data"`
 }
 
-type DelSelfSelectedStockReq struct {
+type GeneralStockReq struct {
 	Code string `json:"code" validate:"required"`
+}
+
+type UpdateStockDealStatusReq struct {
+	Code   string `json:"code" validate:"required"`
+	Status int    `json:"status" validate:"required"`
+}
+
+type AddHistoryTradeReq struct {
+	Code      string `json:"code" validate:"required"`
+	TradeType int    `json:"trade_type" validate:"required"`
 }
 
 func NewStockHandler(svc *service.StockService, vd *validator.Validate) *StockHandler {
@@ -286,8 +296,8 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 
 	queryParams := r.URL.Query()
 	code := queryParams.Get("code")
-	price := queryParams.Get("price") // 委托价格
-	hold := queryParams.Get("hold")   // 买入数量
+	price := queryParams.Get("price")   // 委托价格
+	hold := queryParams.Get("quantity") // 买入数量
 	if code == "" || price == "" || hold == "" {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,
@@ -353,7 +363,7 @@ func (sh *StockHandler) DelSelfSelectedStockHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	var ssd DelSelfSelectedStockReq
+	var ssd GeneralStockReq
 	if err := json.Unmarshal(body, &ssd); err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1002,
@@ -399,5 +409,160 @@ func (sh *StockHandler) DelSelfSelectedStockHandler(w http.ResponseWriter, r *ht
 		Code: 1000,
 		Msg:  "ok",
 		Data: "",
+	})
+}
+
+func (sh *StockHandler) UpdateStockDealStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	var ssd UpdateStockDealStatusReq
+	if err := json.Unmarshal(body, &ssd); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	ssd.Code = strings.TrimSpace(ssd.Code)
+
+	if err := sh.vd.Struct(ssd); err != nil {
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			for _, e := range validationErrors {
+				utils.ResponseJSON(w, StockResponse{
+					Code: 1003,
+					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
+					Data: "",
+				})
+				return
+			}
+		}
+
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1003,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	data, err := sh.svc.UpdateStockDealStatus(ssd.Code, ssd.Status)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1004,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) AddHistoryTradeDataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	var ssd AddHistoryTradeReq
+	if err := json.Unmarshal(body, &ssd); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	ssd.Code = strings.TrimSpace(ssd.Code)
+
+	if err := sh.vd.Struct(ssd); err != nil {
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			for _, e := range validationErrors {
+				utils.ResponseJSON(w, StockResponse{
+					Code: 1003,
+					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
+					Data: "",
+				})
+				return
+			}
+		}
+
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1003,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	data, err := sh.svc.AddHistoryTradeData(ssd.Code, ssd.TradeType)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1004,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) GetHistoryTradeDataListHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid Method", 403)
+		return
+	}
+
+	data, err := sh.svc.GetHistoryTradeDataList()
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
 	})
 }

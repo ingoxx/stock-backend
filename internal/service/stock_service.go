@@ -61,3 +61,15 @@ func (ss *StockService) GetStockRealTimeList() ([]*domain.StockInfo, error) {
 func (ss *StockService) DelSelfSelectedStock(code string) error {
 	return ss.repo.DelSelfSelectedStock(code)
 }
+
+func (ss *StockService) UpdateStockDealStatus(code string, status int) ([]*domain.StockInfo, error) {
+	return ss.repo.UpdateStockDealStatus(code, status)
+}
+
+func (ss *StockService) GetHistoryTradeDataList() ([]*domain.StockInfo, error) {
+	return ss.repo.GetHistoryTradeDataList()
+}
+
+func (ss *StockService) AddHistoryTradeData(code string, TradeType int) ([]*domain.StockInfo, error) {
+	return ss.repo.AddHistoryTradeData(code, TradeType)
+}

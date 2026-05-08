@@ -29,10 +29,10 @@ type StockInfo struct {
 	Turnoverratio float64     `json:"turnoverratio"`
 	Volume        int         `json:"volume"`
 	Amount        int         `json:"amount"`
-	Quantity      int         `json:"quantity"`           // 持仓数量
-	IsDeal        int         `json:"is_deal"`            // 是否已成交， 1：委托中，2：已成交
-	SellOff       int         `json:"sell_off,omitempty"` // 是否卖出，1：持有/买入，2：卖出
-
+	Quantity      int         `json:"quantity"`                  // 持仓数量
+	IsDealStatus  int         `json:"is_deal_status,omitempty"`  // 状态提示是否已成交， 1：委托中，2：已成交
+	SellOffStatus int         `json:"sell_off_status,omitempty"` // 状态提示是否卖出，1：持有/买入，2：卖出
+	TradeType     int         `json:"trade_type,omitempty"`      // 交易类型，1：已卖出，2：已撤回，3：买入
 }
 
 type StockHistoryDate struct {
@@ -79,6 +79,9 @@ type StockInfoRepository interface {
 	GetStockRealTimeData(code, price, hold string) ([]*StockInfo, error)
 	GetStockRealTimeList() ([]*StockInfo, error)
 	DelSelfSelectedStock(code string) error
+	UpdateStockDealStatus(code string, status int) ([]*StockInfo, error)
+	AddHistoryTradeData(code string, TradeType int) ([]*StockInfo, error)
+	GetHistoryTradeDataList() ([]*StockInfo, error)
 }
 
 //type StockInfoForDateRepository interface {

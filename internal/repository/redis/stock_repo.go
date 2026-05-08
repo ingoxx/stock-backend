@@ -16,8 +16,10 @@ import (
 )
 
 const (
-	pythonBin  = "/usr/local/python3.10/bin/python3.10"
-	pythonFile = "/root/pyscript/spot/stock_data_real_time.py"
+	pythonBin                = "/usr/local/python3.10/bin/python3.10"
+	pythonFile               = "/root/pyscript/spot/stock_data_real_time.py"
+	stockRealTimeDataKey     = "stock_real_time_data"
+	stockTradeHistoryDataKey = "stock_trade_history_data"
 )
 
 type StockRepo struct {
@@ -270,9 +272,7 @@ func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
 }
 
 func (sr *StockRepo) checkStockLimit(limit int) error {
-	const redisKey = "stock_real_time_data"
-
-	current, err := sr.client.HGetAll(redisKey).Result()
+	current, err := sr.client.HGetAll(stockRealTimeDataKey).Result()
 	if err != nil {
 		return fmt.Errorf("get current stock data from redis: %w", err)
 	}
@@ -329,10 +329,77 @@ func (sr *StockRepo) loadStockRealTimeData() ([]*domain.StockInfo, error) {
 }
 
 func (sr *StockRepo) DelSelfSelectedStock(code string) error {
-	const redisKey = "stock_real_time_data"
-	if err := sr.client.HDel(redisKey, code).Err(); err != nil {
+	if err := sr.client.HDel(stockRealTimeDataKey, code).Err(); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (sr *StockRepo) UpdateStockDealStatus(code string, status int) ([]*domain.StockInfo, error) {
+	result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
+	if errors.Is(err, redis.Nil) || result == "" {
+		return sr.GetStockRealTimeList()
+	}
+
+	var info domain.StockInfo
+	if err := json.Unmarshal([]byte(result), &info); err != nil {
+		return nil, fmt.Errorf("unmarshal stock info: %w", err)
+	}
+
+	info.TradeType = status
+
+	b, err := json.Marshal(info)
+	if err != nil {
+		return nil, fmt.Errorf("marshal stock info: %w", err)
+	}
+
+	if err := sr.client.HSet(stockRealTimeDataKey, code, string(b)).Err(); err != nil {
+		return nil, err
+	}
+
+	return sr.GetStockRealTimeList()
+}
+
+func (sr *StockRepo) GetHistoryTradeDataList() ([]*domain.StockInfo, error) {
+	result, err := sr.client.LRange(stockTradeHistoryDataKey, 0, -1).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var data = make([]*domain.StockInfo, 0, len(result))
+	for _, raw := range result {
+		var info domain.StockInfo
+		if err := json.Unmarshal([]byte(raw), &info); err != nil {
+			return nil, fmt.Errorf("fail to unmarshal stock info: %w", err)
+		}
+		data = append(data, &info)
+	}
+
+	return data, nil
+}
+
+func (sr *StockRepo) AddHistoryTradeData(code string, TradeType int) ([]*domain.StockInfo, error) {
+	result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
+	if errors.Is(err, redis.Nil) || result == "" {
+		return sr.GetHistoryTradeDataList()
+	}
+
+	var info domain.StockInfo
+	if err := json.Unmarshal([]byte(result), &info); err != nil {
+		return nil, fmt.Errorf("unmarshal stock info: %w", err)
+	}
+
+	info.TradeType = TradeType
+
+	b, err := json.Marshal(info)
+	if err != nil {
+		return nil, fmt.Errorf("fail to marshal stock info: %w", err)
+	}
+
+	if err := sr.client.RPush(stockTradeHistoryDataKey, string(b)).Err(); err != nil {
+		return nil, err
+	}
+
+	return sr.GetHistoryTradeDataList()
 }
