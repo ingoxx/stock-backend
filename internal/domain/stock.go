@@ -30,8 +30,8 @@ type StockInfo struct {
 	Volume        int         `json:"volume"`
 	Amount        int         `json:"amount"`
 	Quantity      int         `json:"quantity"`                  // 持仓数量
-	IsDealStatus  int         `json:"is_deal_status,omitempty"`  // 状态提示是否已成交， 1：委托中，2：已成交
-	SellOffStatus int         `json:"sell_off_status,omitempty"` // 状态提示是否卖出，1：持有/买入，2：卖出
+	IsDealStatus  int         `json:"is_deal_status,omitempty"`  // 状态显示是否已成交， 1：委托中，2：已成交
+	SellOffStatus int         `json:"sell_off_status,omitempty"` // 状态显示是否卖出，1：持有/买入，2：卖出
 	TradeType     int         `json:"trade_type,omitempty"`      // 交易类型，1：已卖出，2：已撤回，3：买入
 }
 

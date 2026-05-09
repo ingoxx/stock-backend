@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/ingoxx/stock-backend/internal/domain"
 	"github.com/ingoxx/stock-backend/internal/service"
 	"github.com/ingoxx/stock-backend/utils"
 )
@@ -317,10 +318,24 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
+	hd, err := sh.svc.GetHistoryTradeDataList()
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	var md = make(map[string][]*domain.StockInfo)
+	md["hd"] = hd
+	md["data"] = data
+
 	utils.ResponseJSON(w, StockResponse{
 		Code: 1000,
 		Msg:  "ok",
-		Data: data,
+		Data: md,
 	})
 }
 
@@ -340,10 +355,24 @@ func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
+	hd, err := sh.svc.GetHistoryTradeDataList()
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	var md = make(map[string][]*domain.StockInfo)
+	md["hd"] = hd
+	md["data"] = data
+
 	utils.ResponseJSON(w, StockResponse{
 		Code: 1000,
 		Msg:  "ok",
-		Data: data,
+		Data: md,
 	})
 }
 
