@@ -27,12 +27,15 @@ type StockInfo struct {
 	Nmc           float64     `json:"nmc"`
 	Price         float64     `json:"price,omitempty"` // 买入价格
 	Turnoverratio float64     `json:"turnoverratio"`
+	Bep           float64     `json:"bep,omitempty"`         // 盈亏点
+	ProfitLoss    float64     `json:"profit_loss,omitempty"` // 具体的盈亏价格
 	Volume        int         `json:"volume"`
 	Amount        int         `json:"amount"`
 	Quantity      int         `json:"quantity"`                  // 持仓数量
 	IsDealStatus  int         `json:"is_deal_status,omitempty"`  // 状态显示是否已成交， 1：委托中，2：已成交
 	SellOffStatus int         `json:"sell_off_status,omitempty"` // 状态显示是否卖出，1：持有/买入，2：卖出
 	TradeType     int         `json:"trade_type,omitempty"`      // 交易类型，1：已卖出，2：已撤回，3：买入
+
 }
 
 type StockHistoryDate struct {
