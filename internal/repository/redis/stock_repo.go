@@ -297,13 +297,12 @@ func (sr *StockRepo) refreshStockRealTimeData(code, price, hold string) error {
 		}
 		return fmt.Errorf("run realtime script failed: %w, output: %s", err, string(out))
 	}
+
 	return nil
 }
 
 func (sr *StockRepo) loadStockRealTimeData() ([]*domain.StockInfo, error) {
-	const redisKey = "stock_real_time_data"
-
-	rawMap, err := sr.client.HGetAll(redisKey).Result()
+	rawMap, err := sr.client.HGetAll(stockRealTimeDataKey).Result()
 	if err != nil {
 		return nil, fmt.Errorf("get latest stock data from redis: %w", err)
 	}
@@ -325,6 +324,7 @@ func (sr *StockRepo) loadStockRealTimeData() ([]*domain.StockInfo, error) {
 
 		result = append(result, &info)
 	}
+
 	return result, nil
 }
 

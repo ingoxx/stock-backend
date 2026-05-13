@@ -19,23 +19,22 @@ type StockInfo struct {
 	Low           string      `json:"low"`
 	Industry      string      `json:"industry"`
 	MainBusiness  string      `json:"main_business"`
-	AccountId     string      `json:"accountId,omitempty"` // A股，港股，美股
+	AccountId     string      `json:"accountId"` // A股，港股，美股
 	Ticktime      FormatTime  `json:"ticktime"`
 	Per           float64     `json:"per"`
 	Pb            float64     `json:"pb"`
 	Mktcap        float64     `json:"mktcap"`
 	Nmc           float64     `json:"nmc"`
-	Price         float64     `json:"price,omitempty"` // 买入价格
+	Price         float64     `json:"price"` // 买入价格
 	Turnoverratio float64     `json:"turnoverratio"`
-	Bep           float64     `json:"bep,omitempty"`         // 盈亏点
-	ProfitLoss    float64     `json:"profit_loss,omitempty"` // 具体的盈亏价格
+	ProfitLoss    float64     `json:"profit_loss"` // 具体的盈亏价格
+	Bep           float64     `json:"bep"`         // 盈亏百分比
 	Volume        int         `json:"volume"`
 	Amount        int         `json:"amount"`
-	Quantity      int         `json:"quantity"`                  // 持仓数量
-	IsDealStatus  int         `json:"is_deal_status,omitempty"`  // 状态显示是否已成交， 1：委托中，2：已成交
-	SellOffStatus int         `json:"sell_off_status,omitempty"` // 状态显示是否卖出，1：持有/买入，2：卖出
-	TradeType     int         `json:"trade_type,omitempty"`      // 交易类型，1：已卖出，2：已撤回，3：买入
-
+	Quantity      int         `json:"quantity"`        // 持仓数量
+	IsDealStatus  int         `json:"is_deal_status"`  // 状态显示是否已成交， 1：委托中，2：已成交
+	SellOffStatus int         `json:"sell_off_status"` // 状态显示是否卖出，1：持有/买入，2：卖出
+	TradeType     int         `json:"trade_type"`      // 交易类型，1：已卖出，2：已撤回，3：买入
 }
 
 type StockHistoryDate struct {
