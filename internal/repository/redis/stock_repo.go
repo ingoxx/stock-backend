@@ -20,6 +20,7 @@ const (
 	pythonFile               = "/root/pyscript/spot/stock_data_real_time.py"
 	stockRealTimeDataKey     = "stock_real_time_data"
 	stockTradeHistoryDataKey = "stock_trade_history_data"
+	stockRealTimeSwitch      = "stock_real_time_switch"
 )
 
 type StockRepo struct {
@@ -402,4 +403,18 @@ func (sr *StockRepo) AddHistoryTradeData(code string, TradeType int) ([]*domain.
 	}
 
 	return sr.GetHistoryTradeDataList()
+}
+
+// StockRealTimeInfoSwitch 1，是关闭实时请求行情接口；2，是开启实时请求行情接口
+func (sr *StockRepo) StockRealTimeInfoSwitch(status int) (string, error) {
+	if err := sr.client.Set(stockRealTimeSwitch, status, 0).Err(); err != nil {
+		return "", err
+	}
+
+	result, err := sr.client.Get(stockRealTimeSwitch).Result()
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
 }

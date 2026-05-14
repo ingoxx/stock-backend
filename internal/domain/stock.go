@@ -84,6 +84,7 @@ type StockInfoRepository interface {
 	UpdateStockDealStatus(code string, status int) ([]*StockInfo, error)
 	AddHistoryTradeData(code string, TradeType int) ([]*StockInfo, error)
 	GetHistoryTradeDataList() ([]*StockInfo, error)
+	StockRealTimeInfoSwitch(status int) (string, error)
 }
 
 //type StockInfoForDateRepository interface {

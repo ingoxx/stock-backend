@@ -73,3 +73,7 @@ func (ss *StockService) GetHistoryTradeDataList() ([]*domain.StockInfo, error) {
 func (ss *StockService) AddHistoryTradeData(code string, TradeType int) ([]*domain.StockInfo, error) {
 	return ss.repo.AddHistoryTradeData(code, TradeType)
 }
+
+func (ss *StockService) StockRealTimeInfoSwitch(status int) (string, error) {
+	return ss.repo.StockRealTimeInfoSwitch(status)
+}
