@@ -7,10 +7,7 @@ import (
 	rdbRepo "github.com/ingoxx/stock-backend/internal/repository/redis"
 	"github.com/ingoxx/stock-backend/internal/service"
 	"github.com/ingoxx/stock-backend/pkg/initial/rds"
-	"golang.org/x/sync/errgroup"
 )
-
-var eg = new(errgroup.Group)
 
 type StockApp struct {
 	StockHandler *handler.StockHandler
@@ -20,7 +17,7 @@ func NewStockApp(rc map[int]*redis.Client) *StockApp {
 	var db = 11
 	var client = rds.GetRedisClient(db, rc)
 	validate := validator.New()
-	stockRepo := rdbRepo.NewStockRepo(client, eg)
+	stockRepo := rdbRepo.NewStockRepo(client)
 	stockSvc := service.NewStockService(stockRepo)
 	stockHandler := handler.NewStockHandler(stockSvc, validate)
 

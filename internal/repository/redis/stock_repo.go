@@ -13,6 +13,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/internal/domain"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -27,13 +28,12 @@ type StockRepo struct {
 	mu     sync.RWMutex
 	client *redis.Client
 	wg     sync.WaitGroup
-	eg     *errgroup.Group
+	sf     singleflight.Group
 }
 
-func NewStockRepo(client *redis.Client, eg *errgroup.Group) domain.StockInfoRepository {
+func NewStockRepo(client *redis.Client) domain.StockInfoRepository {
 	return &StockRepo{
 		client: client,
-		eg:     eg,
 	}
 }
 
@@ -241,32 +241,73 @@ func (sr *StockRepo) GetStockRealTimeData(code, price, hold string) ([]*domain.S
 	return sr.loadStockRealTimeData()
 }
 
-// GetStockRealTimeList 从列表中获取每个最新行情数据
+func (sr *StockRepo) isInStockTime() bool {
+	now := time.Now()
+
+	// 获取当前星期 (time.Monday 为 1, time.Sunday 为 0)
+	// 在 Go 中，周一到周五对应 weekday 1 到 5
+	weekday := now.Weekday()
+	if weekday == time.Saturday || weekday == time.Sunday {
+		return false
+	}
+
+	// 获取当前时间的小时和分钟
+	hour := now.Hour()
+	minute := now.Minute()
+
+	// 将时间转换为分钟数，方便比较 (例如 9:30 = 9*60 + 30 = 570)
+	currentMinutes := hour*60 + minute
+
+	// 上午 9:30 - 11:40 -> 570 - 700
+	// 下午 13:00 - 15:10 -> 780 - 910
+
+	isMorning := currentMinutes >= 570 && currentMinutes <= 700
+	isAfternoon := currentMinutes >= 780 && currentMinutes <= 910
+
+	return isMorning || isAfternoon
+}
+
+// GetStockRealTimeList 从列表中获取每个最新行情数据, 需要在开市时间内或者实时获取开关是否开启
 func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
-	data, err := sr.loadStockRealTimeData()
+	result, err := sr.client.Get(stockRealTimeSwitch).Result()
 	if err != nil {
-		return nil, err
-	}
-	if len(data) == 0 {
-		return data, nil
+		return sr.loadStockRealTimeData()
 	}
 
-	//var eg errgroup.Group
-	sr.eg.SetLimit(2)
+	if sr.isInStockTime() || result == "2" {
 
-	for _, item := range data {
-		code := item.Code
+		data, err := sr.loadStockRealTimeData()
+		if err != nil {
+			return nil, err
+		}
+		if len(data) == 0 {
+			return data, nil
+		}
 
-		sr.eg.Go(func() error {
-			if err := sr.refreshStockRealTimeData(code, "", ""); err != nil {
-				return fmt.Errorf("refresh %s failed: %w", code, err)
+		_, err, _ = sr.sf.Do("refresh_stock_realtime_list", func() (interface{}, error) {
+			var eg errgroup.Group
+			eg.SetLimit(2)
+
+			for _, item := range data {
+				code := item.Code
+
+				eg.Go(func() error {
+					if err := sr.refreshStockRealTimeData(code, "", ""); err != nil {
+						return fmt.Errorf("refresh %s failed: %w", code, err)
+					}
+					return nil
+				})
 			}
-			return nil
-		})
-	}
 
-	if err := sr.eg.Wait(); err != nil {
-		return nil, err
+			if err := eg.Wait(); err != nil {
+				return nil, err
+			}
+			return nil, nil
+		})
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return sr.loadStockRealTimeData()
@@ -277,6 +318,7 @@ func (sr *StockRepo) checkStockLimit(limit int) error {
 	if err != nil {
 		return fmt.Errorf("get current stock data from redis: %w", err)
 	}
+
 	if len(current) >= limit {
 		return fmt.Errorf("up to %d self-selected stocks", limit)
 	}
@@ -285,11 +327,10 @@ func (sr *StockRepo) checkStockLimit(limit int) error {
 }
 
 func (sr *StockRepo) refreshStockRealTimeData(code, price, hold string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, pythonBin, pythonFile, code, price, hold)
-
 	out, err := cmd.CombinedOutput() // stdout + stderr
 	if err != nil {
 		// 超时要单独判断，便于定位
