@@ -19,8 +19,10 @@ import (
 const (
 	pythonBin                = "/usr/local/python3.10/bin/python3.10"
 	pythonFile               = "/root/pyscript/spot/stock_data_real_time.py"
+	stockRtDataFile          = "/root/pyscript/spot/get_stock_real_time.py"
 	stockRealTimeDataKey     = "stock_real_time_data"
 	stockTradeHistoryDataKey = "stock_trade_history_data"
+	stockRtDataKey           = "get_stock_rt_data"
 	stockRealTimeSwitch      = "stock_real_time_switch"
 )
 
@@ -458,4 +460,44 @@ func (sr *StockRepo) StockRealTimeInfoSwitch(status int) (string, error) {
 	}
 
 	return result, nil
+}
+
+func (sr *StockRepo) GetStockRtData(code string) (*domain.StockInfo, error) {
+	if err := sr.runScript(stockRtDataFile, code); err != nil {
+		return nil, err
+	}
+
+	var data *domain.StockInfo
+
+	result, err := sr.client.HGet(stockRtDataKey, code).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	if result == "" {
+		return nil, fmt.Errorf(" %s stock info not found", code)
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return nil, fmt.Errorf("unmarshal stock info: %w", err)
+	}
+
+	return data, nil
+}
+
+func (sr *StockRepo) runScript(fileName string, args ...interface{}) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, pythonBin, fileName, args[0].(string))
+	out, err := cmd.CombinedOutput() // stdout + stderr
+	if err != nil {
+		// 超时要单独判断，便于定位
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return fmt.Errorf("run realtime script timeout: %s", string(out))
+		}
+		return fmt.Errorf("run realtime script failed: %w, output: %s", err, string(out))
+	}
+
+	return nil
 }

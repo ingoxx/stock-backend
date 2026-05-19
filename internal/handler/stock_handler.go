@@ -663,3 +663,37 @@ func (sh *StockHandler) StockRealTimeInfoSwitchHandler(w http.ResponseWriter, r 
 		Data: data,
 	})
 }
+
+func (sh *StockHandler) GetStockRtDataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid Method", 403)
+	}
+
+	queryParams := r.URL.Query()
+	code := queryParams.Get("code")
+
+	if code == "" {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  "required parameter 'code' is missing or empty.",
+			Data: "",
+		})
+		return
+	}
+
+	data, err := sh.svc.GetStockRtData(code)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+
+}
