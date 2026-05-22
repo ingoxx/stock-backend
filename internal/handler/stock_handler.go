@@ -39,7 +39,7 @@ type AddHistoryTradeReq struct {
 	TradeType int    `json:"trade_type" validate:"required"`
 }
 
-type StockRtSwitchReq struct {
+type StockSwitchReq struct {
 	Status int `json:"status" validate:"required"`
 }
 
@@ -616,7 +616,7 @@ func (sh *StockHandler) StockRealTimeInfoSwitchHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	var ssd StockRtSwitchReq
+	var ssd StockSwitchReq
 	if err := json.Unmarshal(body, &ssd); err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1002,
@@ -697,3 +697,133 @@ func (sh *StockHandler) GetStockRtDataHandler(w http.ResponseWriter, r *http.Req
 	})
 
 }
+
+func (sh *StockHandler) StockNoticeSwitchHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	var ssd StockSwitchReq
+	if err := json.Unmarshal(body, &ssd); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	if err := sh.vd.Struct(ssd); err != nil {
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			for _, e := range validationErrors {
+				utils.ResponseJSON(w, StockResponse{
+					Code: 1003,
+					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
+					Data: "",
+				})
+				return
+			}
+		}
+
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1003,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	data, err := sh.svc.StockNoticeSwitch(ssd.Status)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1004,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+//func (sh *StockHandler) UpdateStockEntrustStatusHandler(w http.ResponseWriter, r *http.Request) {
+//	if r.Method != "POST" {
+//		http.Error(w, "", 403)
+//		return
+//	}
+//
+//	body, err := io.ReadAll(r.Body)
+//	if err != nil {
+//		utils.ResponseJSON(w, StockResponse{
+//			Code: 1001,
+//			Msg:  err.Error(),
+//			Data: "",
+//		})
+//		return
+//	}
+//
+//	var ssd UpdateStockDealStatusReq
+//	if err := json.Unmarshal(body, &ssd); err != nil {
+//		utils.ResponseJSON(w, StockResponse{
+//			Code: 1002,
+//			Msg:  err.Error(),
+//			Data: "",
+//		})
+//		return
+//	}
+//
+//	ssd.Code = strings.TrimSpace(ssd.Code)
+//
+//	if err := sh.vd.Struct(ssd); err != nil {
+//		var validationErrors validator.ValidationErrors
+//		if errors.As(err, &validationErrors) {
+//			for _, e := range validationErrors {
+//				utils.ResponseJSON(w, StockResponse{
+//					Code: 1003,
+//					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
+//					Data: "",
+//				})
+//				return
+//			}
+//		}
+//
+//		utils.ResponseJSON(w, StockResponse{
+//			Code: 1003,
+//			Msg:  err.Error(),
+//			Data: "",
+//		})
+//		return
+//	}
+//
+//	data, err := sh.svc.UpdateStockEntrustStatus(ssd.Code, ssd.Status)
+//	if err != nil {
+//		utils.ResponseJSON(w, StockResponse{
+//			Code: 1004,
+//			Msg:  err.Error(),
+//			Data: "",
+//		})
+//		return
+//	}
+//
+//	utils.ResponseJSON(w, StockResponse{
+//		Code: 1000,
+//		Msg:  "ok",
+//		Data: data,
+//	})
+//}

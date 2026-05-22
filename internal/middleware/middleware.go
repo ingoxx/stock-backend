@@ -2,12 +2,13 @@ package middleware
 
 import (
 	"encoding/json"
+	"log"
+	"net/http"
+
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/cmd/server"
 	cusErr "github.com/ingoxx/stock-backend/internal/error"
 	"github.com/rs/cors"
-	"log"
-	"net/http"
 )
 
 func AuthMiddleware(next http.Handler, rc map[int]*redis.Client) http.Handler {
@@ -20,7 +21,7 @@ func AuthMiddleware(next http.Handler, rc map[int]*redis.Client) http.Handler {
 		app := server.NewVerifyApp(rc)
 		if err := app.VerifyService.GetAuthData(sign); err != nil {
 			var resp = server.VerifyResp{
-				Code: 20001,
+				Code: 403,
 				Msg:  cusErr.AuthError.Error(),
 			}
 

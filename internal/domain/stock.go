@@ -86,4 +86,7 @@ type StockInfoRepository interface {
 	GetHistoryTradeDataList() ([]*StockInfo, error)
 	StockRealTimeInfoSwitch(status int) (string, error)
 	GetStockRtData(code string) (*StockInfo, error)
+	StockNoticeSwitch(status int) (int, error)
+	// UpdateStockEntrustStatus(code string, status int) ([]*StockInfo, error)
+
 }

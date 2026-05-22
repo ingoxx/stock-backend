@@ -81,3 +81,11 @@ func (ss *StockService) StockRealTimeInfoSwitch(status int) (string, error) {
 func (ss *StockService) GetStockRtData(code string) (*domain.StockInfo, error) {
 	return ss.repo.GetStockRtData(code)
 }
+
+func (ss *StockService) StockNoticeSwitch(status int) (int, error) {
+	return ss.repo.StockNoticeSwitch(status)
+}
+
+//func (ss *StockService) UpdateStockEntrustStatus(code string, status int) ([]*domain.StockInfo, error) {
+//	return ss.repo.UpdateStockEntrustStatus(code, status)
+//}

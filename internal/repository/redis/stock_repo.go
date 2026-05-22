@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"sync"
 	"time"
 
@@ -24,6 +25,7 @@ const (
 	stockTradeHistoryDataKey = "stock_trade_history_data"
 	stockRtDataKey           = "get_stock_rt_data"
 	stockRealTimeSwitch      = "stock_real_time_switch"
+	stockNoticeKey           = "stock_real_time_notice"
 )
 
 type StockRepo struct {
@@ -380,6 +382,64 @@ func (sr *StockRepo) DelSelfSelectedStock(code string) error {
 	return nil
 }
 
+// StockNoticeSwitch 1,close;2,open;3,check;default 1
+func (sr *StockRepo) StockNoticeSwitch(status int) (int, error) {
+	if status == 1 || status == 2 {
+		if err := sr.client.Set(stockNoticeKey, status, 0).Err(); err != nil {
+			return 0, err
+		}
+
+		return status, nil
+	} else if status == 3 {
+		result, err := sr.client.Get(stockNoticeKey).Result()
+		if errors.Is(err, redis.Nil) {
+			if err := sr.client.Set(stockNoticeKey, 1, 0).Err(); err != nil {
+				return 1, err
+			}
+		}
+
+		if err != nil {
+			return 0, err
+		}
+
+		val, err := strconv.Atoi(result)
+		if err != nil {
+			return 0, err
+		}
+
+		return val, nil
+	}
+
+	return status, nil
+}
+
+// UpdateStockEntrustStatus 更新委托状态,有时候获取行情接口数据比较慢，会导致委托价格不成功
+//func (sr *StockRepo) UpdateStockEntrustStatus(code string, status int) ([]*domain.StockInfo, error) {
+//	result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
+//	if errors.Is(err, redis.Nil) || result == "" {
+//		return sr.GetStockRealTimeList()
+//	}
+//
+//	var info domain.StockInfo
+//	if err := json.Unmarshal([]byte(result), &info); err != nil {
+//		return nil, fmt.Errorf("unmarshal stock info: %w", err)
+//	}
+//
+//	info.IsDealStatus = status
+//
+//	b, err := json.Marshal(info)
+//	if err != nil {
+//		return nil, fmt.Errorf("marshal stock info: %w", err)
+//	}
+//
+//	if err := sr.client.HSet(stockRealTimeDataKey, code, string(b)).Err(); err != nil {
+//		return nil, err
+//	}
+//
+//	return sr.GetStockRealTimeList()
+//}
+
+// UpdateStockDealStatus 更新交易状态
 func (sr *StockRepo) UpdateStockDealStatus(code string, status int) ([]*domain.StockInfo, error) {
 	result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
 	if errors.Is(err, redis.Nil) || result == "" {
