@@ -86,6 +86,10 @@ func (ss *StockService) StockNoticeSwitch(status int) (int, error) {
 	return ss.repo.StockNoticeSwitch(status)
 }
 
+func (ss *StockService) GetGoodStocks(industry, days, lookBackDays string) ([]*domain.FilterGoodStock, error) {
+	return ss.repo.GetGoodStocks(industry, days, lookBackDays)
+}
+
 //func (ss *StockService) UpdateStockEntrustStatus(code string, status int) ([]*domain.StockInfo, error) {
 //	return ss.repo.UpdateStockEntrustStatus(code, status)
 //}

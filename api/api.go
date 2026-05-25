@@ -42,6 +42,7 @@ func Start() {
 	mux.HandleFunc("/v1/stock/real-time/switch", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.StockRealTimeInfoSwitchHandler).ServeHTTP)
 	mux.HandleFunc("/v2/stock/real-time/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockRtDataHandler).ServeHTTP)
 	mux.HandleFunc("/v1/stock/notice/switch", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.StockNoticeSwitchHandler).ServeHTTP)
+	mux.HandleFunc("/v1/stock/filter/good", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetGoodStocksHandler).ServeHTTP)
 
 	//mux.HandleFunc("/v1/stock/entrust-status/update", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.UpdateStockEntrustStatusHandler).ServeHTTP)
 

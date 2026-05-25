@@ -43,6 +43,12 @@ type StockSwitchReq struct {
 	Status int `json:"status" validate:"required"`
 }
 
+type GetGoodStockReq struct {
+	Industry     string `json:"industry" validate:"required"`
+	Days         int    `json:"days" validate:"required"`
+	LookBackDays int    `json:"look_back_days" validate:"required"`
+}
+
 func NewStockHandler(svc *service.StockService, vd *validator.Validate) *StockHandler {
 	return &StockHandler{svc: svc, vd: vd}
 }
@@ -749,6 +755,42 @@ func (sh *StockHandler) StockNoticeSwitchHandler(w http.ResponseWriter, r *http.
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1004,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	queryParams := r.URL.Query()
+	industry := queryParams.Get("industry")
+	days := queryParams.Get("days")
+	lookBackDays := queryParams.Get("lookBackDays")
+	if industry == "" || days == "" || lookBackDays == "" {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  "required parameter 'industry', 'days', 'lookBackDays' is missing or empty.",
+			Data: "",
+		})
+		return
+	}
+
+	data, err := sh.svc.GetGoodStocks(industry, days, lookBackDays)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
 		})

@@ -67,6 +67,11 @@ type StockMarketData struct {
 	Down   int32 `json:"down"`
 }
 
+type FilterGoodStock struct {
+	Code string   `json:"code"`
+	Date []string `json:"date"`
+}
+
 type StockInfoRepository interface {
 	GetStockList() ([]*StockInfo, error)
 	GetStockInfoForDataList(code string) ([]*StockHistoryDate, error)
@@ -87,6 +92,7 @@ type StockInfoRepository interface {
 	StockRealTimeInfoSwitch(status int) (string, error)
 	GetStockRtData(code string) (*StockInfo, error)
 	StockNoticeSwitch(status int) (int, error)
+	GetGoodStocks(industry, days, lookBackDays string) ([]*FilterGoodStock, error)
 	// UpdateStockEntrustStatus(code string, status int) ([]*StockInfo, error)
 
 }

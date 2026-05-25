@@ -21,11 +21,13 @@ const (
 	pythonBin                = "/usr/local/python3.10/bin/python3.10"
 	pythonFile               = "/root/pyscript/spot/stock_data_real_time.py"
 	stockRtDataFile          = "/root/pyscript/spot/get_stock_real_time.py"
+	filterGoodStockFile      = "/root/pyscript/spot/filter_good_stock.py"
 	stockRealTimeDataKey     = "stock_real_time_data"
 	stockTradeHistoryDataKey = "stock_trade_history_data"
 	stockRtDataKey           = "get_stock_rt_data"
 	stockRealTimeSwitch      = "stock_real_time_switch"
 	stockNoticeKey           = "stock_real_time_notice"
+	filterGoodStock          = "filter_good_stock"
 )
 
 type StockRepo struct {
@@ -93,8 +95,7 @@ func (sr *StockRepo) GetStockIndustryList() ([]*domain.StockIndustryMap, error) 
 		return ds, err
 	}
 
-	bn := bytes.NewBufferString(result)
-	if err := json.Unmarshal(bn.Bytes(), &ds); err != nil {
+	if err := json.Unmarshal([]byte(result), &ds); err != nil {
 		return ds, err
 	}
 
@@ -545,11 +546,42 @@ func (sr *StockRepo) GetStockRtData(code string) (*domain.StockInfo, error) {
 	return data, nil
 }
 
+func (sr *StockRepo) GetGoodStocks(industry, days, lookBackDays string) ([]*domain.FilterGoodStock, error) {
+	var data []*domain.FilterGoodStock
+
+	if days != "1000" {
+		if err := sr.runScript(filterGoodStockFile, industry, days, lookBackDays); err != nil {
+			return nil, err
+		}
+	}
+
+	result, err := sr.client.HGet(filterGoodStock, industry).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return data, nil
+		}
+
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return nil, fmt.Errorf("unmarshal stock info: %w", err)
+	}
+
+	return data, nil
+}
+
 func (sr *StockRepo) runScript(fileName string, args ...interface{}) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, pythonBin, fileName, args[0].(string))
+	cmdArgs := make([]string, 0, len(args)+2)
+	cmdArgs = append(cmdArgs, pythonBin, fileName)
+	for _, arg := range args {
+		cmdArgs = append(cmdArgs, fmt.Sprint(arg))
+	}
+
+	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
 	out, err := cmd.CombinedOutput() // stdout + stderr
 	if err != nil {
 		// 超时要单独判断，便于定位
