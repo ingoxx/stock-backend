@@ -799,73 +799,30 @@ func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Requ
 
 	utils.ResponseJSON(w, StockResponse{
 		Code: 1000,
-		Msg:  "ok",
+		Msg:  fmt.Sprintf("正在分析%s行业下的所有股票数据,大概需要1分钟左右", industry),
 		Data: data,
 	})
 }
 
-//func (sh *StockHandler) UpdateStockEntrustStatusHandler(w http.ResponseWriter, r *http.Request) {
-//	if r.Method != "POST" {
-//		http.Error(w, "", 403)
-//		return
-//	}
-//
-//	body, err := io.ReadAll(r.Body)
-//	if err != nil {
-//		utils.ResponseJSON(w, StockResponse{
-//			Code: 1001,
-//			Msg:  err.Error(),
-//			Data: "",
-//		})
-//		return
-//	}
-//
-//	var ssd UpdateStockDealStatusReq
-//	if err := json.Unmarshal(body, &ssd); err != nil {
-//		utils.ResponseJSON(w, StockResponse{
-//			Code: 1002,
-//			Msg:  err.Error(),
-//			Data: "",
-//		})
-//		return
-//	}
-//
-//	ssd.Code = strings.TrimSpace(ssd.Code)
-//
-//	if err := sh.vd.Struct(ssd); err != nil {
-//		var validationErrors validator.ValidationErrors
-//		if errors.As(err, &validationErrors) {
-//			for _, e := range validationErrors {
-//				utils.ResponseJSON(w, StockResponse{
-//					Code: 1003,
-//					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
-//					Data: "",
-//				})
-//				return
-//			}
-//		}
-//
-//		utils.ResponseJSON(w, StockResponse{
-//			Code: 1003,
-//			Msg:  err.Error(),
-//			Data: "",
-//		})
-//		return
-//	}
-//
-//	data, err := sh.svc.UpdateStockEntrustStatus(ssd.Code, ssd.Status)
-//	if err != nil {
-//		utils.ResponseJSON(w, StockResponse{
-//			Code: 1004,
-//			Msg:  err.Error(),
-//			Data: "",
-//		})
-//		return
-//	}
-//
-//	utils.ResponseJSON(w, StockResponse{
-//		Code: 1000,
-//		Msg:  "ok",
-//		Data: data,
-//	})
-//}
+func (sh *StockHandler) FilterGoodStocksHistoryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", 403)
+		return
+	}
+
+	data, err := sh.svc.FilterGoodStocksHistory()
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}

@@ -21,7 +21,7 @@ func Start() {
 	lmt := tollbooth.NewLimiter(configs.MaxReqFrequency, nil)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/golden/list", tollbooth.LimitFuncHandler(lmt, goldenApp.GoldenHandler.GetGoldenPriceListHandler).ServeHTTP)
+	mux.HandleFunc("/v2/golden/list", tollbooth.LimitFuncHandler(lmt, goldenApp.GoldenHandler.GetGoldenPriceListHandler).ServeHTTP)
 	mux.HandleFunc("/v1/golden/set", tollbooth.LimitFuncHandler(lmt, goldenApp.GoldenHandler.SetGoldenPriceHandler).ServeHTTP)
 	mux.HandleFunc("/v1/stock/list", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockListHandler).ServeHTTP)
 	mux.HandleFunc("/v1/stock/days/detail", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockInfoForDataListHandler).ServeHTTP)
@@ -43,8 +43,7 @@ func Start() {
 	mux.HandleFunc("/v2/stock/real-time/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockRtDataHandler).ServeHTTP)
 	mux.HandleFunc("/v1/stock/notice/switch", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.StockNoticeSwitchHandler).ServeHTTP)
 	mux.HandleFunc("/v1/stock/filter/good", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetGoodStocksHandler).ServeHTTP)
-
-	//mux.HandleFunc("/v1/stock/entrust-status/update", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.UpdateStockEntrustStatusHandler).ServeHTTP)
+	mux.HandleFunc("/v1/stock/filter/good/history", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.FilterGoodStocksHistoryHandler).ServeHTTP)
 
 	authMux := middleware.AuthMiddleware(mux, rdbConn)
 	//corsMux := middleware.AllowCorsMiddleware(authMux)

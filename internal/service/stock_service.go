@@ -90,6 +90,6 @@ func (ss *StockService) GetGoodStocks(industry, days, lookBackDays string) ([]*d
 	return ss.repo.GetGoodStocks(industry, days, lookBackDays)
 }
 
-//func (ss *StockService) UpdateStockEntrustStatus(code string, status int) ([]*domain.StockInfo, error) {
-//	return ss.repo.UpdateStockEntrustStatus(code, status)
-//}
+func (ss *StockService) FilterGoodStocksHistory() ([]string, error) {
+	return ss.repo.FilterGoodStocksHistory()
+}

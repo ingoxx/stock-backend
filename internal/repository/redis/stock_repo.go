@@ -27,7 +27,7 @@ const (
 	stockRtDataKey           = "get_stock_rt_data"
 	stockRealTimeSwitch      = "stock_real_time_switch"
 	stockNoticeKey           = "stock_real_time_notice"
-	filterGoodStock          = "filter_good_stock"
+	filterGoodStockKey       = "filter_good_stock"
 )
 
 type StockRepo struct {
@@ -524,7 +524,7 @@ func (sr *StockRepo) StockRealTimeInfoSwitch(status int) (string, error) {
 }
 
 func (sr *StockRepo) GetStockRtData(code string) (*domain.StockInfo, error) {
-	if err := sr.runScript(stockRtDataFile, code); err != nil {
+	if err := sr.runScript(stockRtDataFile, false, code); err != nil {
 		return nil, err
 	}
 
@@ -550,12 +550,14 @@ func (sr *StockRepo) GetGoodStocks(industry, days, lookBackDays string) ([]*doma
 	var data []*domain.FilterGoodStock
 
 	if days != "1000" {
-		if err := sr.runScript(filterGoodStockFile, industry, days, lookBackDays); err != nil {
+		if err := sr.runScript(filterGoodStockFile, true, industry, days, lookBackDays); err != nil {
 			return nil, err
 		}
+
+		return data, nil
 	}
 
-	result, err := sr.client.HGet(filterGoodStock, industry).Result()
+	result, err := sr.client.HGet(filterGoodStockKey, industry).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return data, nil
@@ -571,15 +573,32 @@ func (sr *StockRepo) GetGoodStocks(industry, days, lookBackDays string) ([]*doma
 	return data, nil
 }
 
-func (sr *StockRepo) runScript(fileName string, args ...interface{}) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
+func (sr *StockRepo) FilterGoodStocksHistory() ([]string, error) {
+	result, err := sr.client.HKeys(filterGoodStockKey).Result()
+	if err != nil {
+		return nil, err
+	}
 
+	return result, nil
+}
+
+func (sr *StockRepo) runScript(fileName string, async bool, args ...interface{}) error {
 	cmdArgs := make([]string, 0, len(args)+2)
 	cmdArgs = append(cmdArgs, pythonBin, fileName)
 	for _, arg := range args {
 		cmdArgs = append(cmdArgs, fmt.Sprint(arg))
 	}
+
+	if async {
+		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+		if err := cmd.Start(); err != nil {
+			return fmt.Errorf("start realtime script failed: %w", err)
+		}
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
 
 	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
 	out, err := cmd.CombinedOutput() // stdout + stderr
