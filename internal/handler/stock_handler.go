@@ -239,6 +239,7 @@ func (sh *StockHandler) GetStockCusDaysDataHandler(w http.ResponseWriter, r *htt
 
 	queryParams := r.URL.Query()
 	code := queryParams.Get("code")
+	days := queryParams.Get("days")
 	if code == "" {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,
@@ -248,7 +249,11 @@ func (sh *StockHandler) GetStockCusDaysDataHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	data, err := sh.svc.GetStockHistoryData(code)
+	if days == "" {
+		days = "30"
+	}
+
+	data, err := sh.svc.GetStockHistoryData(code, days)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,

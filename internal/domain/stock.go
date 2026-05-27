@@ -1,8 +1,23 @@
 package domain
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"math"
+	"strconv"
+)
 
 type FormatTime string
+
+type FormatVolume string
+
+func (fv FormatVolume) FormatFloat(volumeStr string) (float64, error) {
+	num, err := strconv.ParseFloat(volumeStr, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return math.Round((num/100000000)*100) / 100, nil
+}
 
 type StockInfo struct {
 	PriceChange   json.Number `json:"pricechange"`
@@ -38,14 +53,14 @@ type StockInfo struct {
 }
 
 type StockHistoryDate struct {
-	Day    string  `json:"day"`
-	Code   string  `json:"code"`
-	Open   string  `json:"open"`
-	High   string  `json:"high"`
-	Low    string  `json:"low"`
-	Volume string  `json:"volume"`
-	PctChg float64 `json:"pct_chg"`
-	Close  float64 `json:"close"`
+	Day    string       `json:"day"`
+	Code   string       `json:"code"`
+	Open   string       `json:"open"`
+	High   string       `json:"high"`
+	Low    string       `json:"low"`
+	Volume FormatVolume `json:"volume"`
+	PctChg float64      `json:"pct_chg"`
+	Close  float64      `json:"close"`
 }
 
 type StockIndustryMap struct {
@@ -82,7 +97,7 @@ type StockInfoRepository interface {
 	GetStockDataSwitch() error
 	GetStockDataStatus() error
 	GetIndustryData(name string) ([]*StockInfo, error)
-	GetStockHistoryData(code string) ([]*StockHistoryDate, error)
+	GetStockHistoryData(code, days string) ([]*StockHistoryDate, error)
 	GetStockInfoData(code string) (*StockInfo, error)
 	GetStockRealTimeData(code, price, hold string) ([]*StockInfo, error)
 	GetStockRealTimeList() ([]*StockInfo, error)

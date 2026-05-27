@@ -174,13 +174,13 @@ func (sr *StockRepo) GetIndustryData(name string) ([]*domain.StockInfo, error) {
 	return md, nil
 }
 
-func (sr *StockRepo) GetStockHistoryData(code string) ([]*domain.StockHistoryDate, error) {
+func (sr *StockRepo) GetStockHistoryData(code, days string) ([]*domain.StockHistoryDate, error) {
 	var md []*domain.StockHistoryDate
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	command := exec.CommandContext(ctx, "/usr/local/python3.10/bin/python3.10", "/root/pyscript/spot/stock_history_data.py", code, "30")
+	command := exec.CommandContext(ctx, "/usr/local/python3.10/bin/python3.10", "/root/pyscript/spot/stock_history_data.py", code, days)
 	if err := command.Run(); err != nil {
 		return md, err
 	}
@@ -413,32 +413,6 @@ func (sr *StockRepo) StockNoticeSwitch(status int) (int, error) {
 
 	return status, nil
 }
-
-// UpdateStockEntrustStatus 更新委托状态,有时候获取行情接口数据比较慢，会导致委托价格不成功
-//func (sr *StockRepo) UpdateStockEntrustStatus(code string, status int) ([]*domain.StockInfo, error) {
-//	result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
-//	if errors.Is(err, redis.Nil) || result == "" {
-//		return sr.GetStockRealTimeList()
-//	}
-//
-//	var info domain.StockInfo
-//	if err := json.Unmarshal([]byte(result), &info); err != nil {
-//		return nil, fmt.Errorf("unmarshal stock info: %w", err)
-//	}
-//
-//	info.IsDealStatus = status
-//
-//	b, err := json.Marshal(info)
-//	if err != nil {
-//		return nil, fmt.Errorf("marshal stock info: %w", err)
-//	}
-//
-//	if err := sr.client.HSet(stockRealTimeDataKey, code, string(b)).Err(); err != nil {
-//		return nil, err
-//	}
-//
-//	return sr.GetStockRealTimeList()
-//}
 
 // UpdateStockDealStatus 更新交易状态
 func (sr *StockRepo) UpdateStockDealStatus(code string, status int) ([]*domain.StockInfo, error) {
