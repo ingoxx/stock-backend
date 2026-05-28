@@ -108,7 +108,7 @@ type StockInfoRepository interface {
 	StockRealTimeInfoSwitch(status int) (string, error)
 	GetStockRtData(code string) (*StockInfo, error)
 	StockNoticeSwitch(status int) (int, error)
-	GetGoodStocks(industry, days, lookBackDays string) ([]*FilterGoodStock, error)
+	GetGoodStocks(industry, days, lookBackDays, price string) ([]*FilterGoodStock, error)
 	FilterGoodStocksHistory() ([]string, error)
 	// UpdateStockEntrustStatus(code string, status int) ([]*StockInfo, error)
 

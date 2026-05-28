@@ -426,7 +426,9 @@ func (sr *StockRepo) UpdateStockDealStatus(code string, status int) ([]*domain.S
 		return nil, fmt.Errorf("unmarshal stock info: %w", err)
 	}
 
+	now := time.Now()
 	info.TradeType = status
+	info.Ticktime = domain.FormatTime(now.Format("2006-01-02 15:04:05"))
 
 	b, err := json.Marshal(info)
 	if err != nil {
@@ -520,14 +522,13 @@ func (sr *StockRepo) GetStockRtData(code string) (*domain.StockInfo, error) {
 	return data, nil
 }
 
-func (sr *StockRepo) GetGoodStocks(industry, days, lookBackDays string) ([]*domain.FilterGoodStock, error) {
+func (sr *StockRepo) GetGoodStocks(industry, days, lookBackDays, price string) ([]*domain.FilterGoodStock, error) {
 	var data []*domain.FilterGoodStock
 
 	if days != "1000" {
-		if err := sr.runScript(filterGoodStockFile, true, industry, days, lookBackDays); err != nil {
+		if err := sr.runScript(filterGoodStockFile, true, industry, days, lookBackDays, price); err != nil {
 			return nil, err
 		}
-
 		return data, nil
 	}
 

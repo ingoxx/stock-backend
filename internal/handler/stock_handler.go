@@ -20,9 +20,10 @@ type StockHandler struct {
 }
 
 type StockResponse struct {
-	Code int         `json:"code"`
-	Msg  string      `json:"msg"`
-	Data interface{} `json:"data"`
+	Code  int         `json:"code"`
+	Msg   string      `json:"msg"`
+	Data  interface{} `json:"data"`
+	Other interface{} `json:"other,omitempty"`
 }
 
 type GeneralStockReq struct {
@@ -701,10 +702,21 @@ func (sh *StockHandler) GetStockRtDataHandler(w http.ResponseWriter, r *http.Req
 		})
 	}
 
+	hd, err := sh.svc.GetStockHistoryData(code, "2")
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1003,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
 	utils.ResponseJSON(w, StockResponse{
-		Code: 1000,
-		Msg:  "ok",
-		Data: data,
+		Code:  1000,
+		Msg:   "ok",
+		Data:  data,
+		Other: hd,
 	})
 
 }
@@ -783,6 +795,7 @@ func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Requ
 	industry := queryParams.Get("industry")
 	days := queryParams.Get("days")
 	lookBackDays := queryParams.Get("lookBackDays")
+	price := queryParams.Get("price")
 	if industry == "" || days == "" || lookBackDays == "" {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,
@@ -792,7 +805,11 @@ func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	data, err := sh.svc.GetGoodStocks(industry, days, lookBackDays)
+	if price == "" {
+		price = "0.1"
+	}
+
+	data, err := sh.svc.GetGoodStocks(industry, days, lookBackDays, price)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,

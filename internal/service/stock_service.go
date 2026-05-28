@@ -86,8 +86,8 @@ func (ss *StockService) StockNoticeSwitch(status int) (int, error) {
 	return ss.repo.StockNoticeSwitch(status)
 }
 
-func (ss *StockService) GetGoodStocks(industry, days, lookBackDays string) ([]*domain.FilterGoodStock, error) {
-	return ss.repo.GetGoodStocks(industry, days, lookBackDays)
+func (ss *StockService) GetGoodStocks(industry, days, lookBackDays, price string) ([]*domain.FilterGoodStock, error) {
+	return ss.repo.GetGoodStocks(industry, days, lookBackDays, price)
 }
 
 func (ss *StockService) FilterGoodStocksHistory() ([]string, error) {
