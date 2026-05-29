@@ -22,12 +22,14 @@ const (
 	pythonFile               = "/root/pyscript/spot/stock_data_real_time.py"
 	stockRtDataFile          = "/root/pyscript/spot/get_stock_real_time.py"
 	filterGoodStockFile      = "/root/pyscript/spot/filter_good_stock.py"
+	feishuSendTest           = "/root/pyscript/spot/stock_notice.py"
 	stockRealTimeDataKey     = "stock_real_time_data"
 	stockTradeHistoryDataKey = "stock_trade_history_data"
 	stockRtDataKey           = "get_stock_rt_data"
 	stockRealTimeSwitch      = "stock_real_time_switch"
 	stockNoticeKey           = "stock_real_time_notice"
 	filterGoodStockKey       = "filter_good_stock"
+	stockFsSetKey            = "fei_bot"
 )
 
 type StockRepo struct {
@@ -555,6 +557,45 @@ func (sr *StockRepo) FilterGoodStocksHistory() ([]string, error) {
 	}
 
 	return result, nil
+}
+
+func (sr *StockRepo) StockNoticeFsSet(webHook, word string) error {
+	var s = domain.FsNoticeConfig{
+		WebHook: webHook,
+		Word:    word,
+	}
+
+	jsonStr, err := json.Marshal(&s)
+	if err != nil {
+		return err
+	}
+
+	if err := sr.client.Set(stockFsSetKey, string(jsonStr), 0).Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sr *StockRepo) SendFsInfo() error {
+	if !sr.CheckStockNoticeFsSetStatus() {
+		return errors.New("please set up Lark Robot first")
+	}
+
+	if err := sr.runScript(feishuSendTest, false); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sr *StockRepo) CheckStockNoticeFsSetStatus() bool {
+	result, err := sr.client.Get(stockFsSetKey).Result()
+	if err != nil || result == "" || errors.Is(err, redis.Nil) {
+		return false
+	}
+
+	return true
 }
 
 func (sr *StockRepo) runScript(fileName string, async bool, args ...interface{}) error {

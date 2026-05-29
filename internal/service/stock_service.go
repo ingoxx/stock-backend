@@ -93,3 +93,15 @@ func (ss *StockService) GetGoodStocks(industry, days, lookBackDays, price string
 func (ss *StockService) FilterGoodStocksHistory() ([]string, error) {
 	return ss.repo.FilterGoodStocksHistory()
 }
+
+func (ss *StockService) StockNoticeFsSet(webHook, word string) error {
+	return ss.repo.StockNoticeFsSet(webHook, word)
+}
+
+func (ss *StockService) CheckStockNoticeFsSetStatus() bool {
+	return ss.repo.CheckStockNoticeFsSetStatus()
+}
+
+func (ss *StockService) SendFsInfo() error {
+	return ss.repo.SendFsInfo()
+}

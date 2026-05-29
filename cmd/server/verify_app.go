@@ -1,7 +1,9 @@
 package server
 
 import (
+	"github.com/go-playground/validator/v10"
 	"github.com/go-redis/redis"
+	"github.com/ingoxx/stock-backend/internal/handler"
 	rdbRepo "github.com/ingoxx/stock-backend/internal/repository/redis"
 	"github.com/ingoxx/stock-backend/internal/service"
 	"github.com/ingoxx/stock-backend/pkg/initial/rds"
@@ -12,6 +14,7 @@ var (
 )
 
 type VerifyApp struct {
+	VerifyHandler *handler.VerifyHandler
 	VerifyService *service.VerifyService
 }
 
@@ -21,11 +24,14 @@ type VerifyResp struct {
 }
 
 func NewVerifyApp(rc map[int]*redis.Client) *VerifyApp {
-	var client = rds.GetRedisClient(db, rc)
-	repo := rdbRepo.NewVerifyRepo(client)
-	verifyService := service.NewVerifyService(repo)
+	validate := validator.New()
+	client := rds.GetRedisClient(db, rc)
+	verifyRepo := rdbRepo.NewVerifyRepo(client)
+	verifyService := service.NewVerifyService(verifyRepo)
+	verifyHandler := handler.NewVerifyHandler(verifyService, validate)
 
 	return &VerifyApp{
+		VerifyHandler: verifyHandler,
 		VerifyService: verifyService,
 	}
 }

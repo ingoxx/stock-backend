@@ -88,6 +88,12 @@ type FilterGoodStock struct {
 	Date string `json:"date"`
 }
 
+// FsNoticeConfig 飞书预警配置
+type FsNoticeConfig struct {
+	WebHook string `json:"web_hook"`
+	Word    string `json:"word"`
+}
+
 type StockInfoRepository interface {
 	GetStockList() ([]*StockInfo, error)
 	GetStockInfoForDataList(code string) ([]*StockHistoryDate, error)
@@ -110,6 +116,7 @@ type StockInfoRepository interface {
 	StockNoticeSwitch(status int) (int, error)
 	GetGoodStocks(industry, days, lookBackDays, price string) ([]*FilterGoodStock, error)
 	FilterGoodStocksHistory() ([]string, error)
-	// UpdateStockEntrustStatus(code string, status int) ([]*StockInfo, error)
-
+	StockNoticeFsSet(webHook, word string) error
+	CheckStockNoticeFsSetStatus() bool
+	SendFsInfo() error
 }

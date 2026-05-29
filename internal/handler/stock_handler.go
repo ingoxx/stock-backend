@@ -50,6 +50,11 @@ type GetGoodStockReq struct {
 	LookBackDays int    `json:"look_back_days" validate:"required"`
 }
 
+type FsNoticeConfigReq struct {
+	WebHook string `json:"web_hook"`
+	Word    string `json:"word"`
+}
+
 func NewStockHandler(svc *service.StockService, vd *validator.Validate) *StockHandler {
 	return &StockHandler{svc: svc, vd: vd}
 }
@@ -131,9 +136,10 @@ func (sh *StockHandler) GetIndustryStockUpDownHandler(w http.ResponseWriter, r *
 	}
 
 	utils.ResponseJSON(w, StockResponse{
-		Code: 1000,
-		Msg:  "ok",
-		Data: ud,
+		Code:  1000,
+		Msg:   "ok",
+		Data:  ud,
+		Other: sh.svc.CheckStockNoticeFsSetStatus(),
 	})
 }
 
@@ -702,21 +708,10 @@ func (sh *StockHandler) GetStockRtDataHandler(w http.ResponseWriter, r *http.Req
 		})
 	}
 
-	hd, err := sh.svc.GetStockHistoryData(code, "2")
-	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1003,
-			Msg:  err.Error(),
-			Data: "",
-		})
-		return
-	}
-
 	utils.ResponseJSON(w, StockResponse{
-		Code:  1000,
-		Msg:   "ok",
-		Data:  data,
-		Other: hd,
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
 	})
 
 }
@@ -846,5 +841,80 @@ func (sh *StockHandler) FilterGoodStocksHistoryHandler(w http.ResponseWriter, r 
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
+	})
+}
+
+func (sh *StockHandler) StockNoticeFsSetHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	var ssd FsNoticeConfigReq
+	if err := json.Unmarshal(body, &ssd); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	if err := sh.vd.Struct(ssd); err != nil {
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			for _, e := range validationErrors {
+				utils.ResponseJSON(w, StockResponse{
+					Code: 1003,
+					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
+					Data: "",
+				})
+				return
+			}
+		}
+
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1004,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	if err := sh.svc.StockNoticeFsSet(ssd.WebHook, ssd.Word); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1005,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "配置完成",
+		Data: "",
+	})
+}
+
+func (sh *StockHandler) SendFsInfoHandler(w http.ResponseWriter, r *http.Request) {
+	if err := sh.svc.SendFsInfo(); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1004,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "发送完成,请检查是否收到信息",
+		Data: "",
 	})
 }
