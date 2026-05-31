@@ -105,3 +105,7 @@ func (ss *StockService) CheckStockNoticeFsSetStatus() bool {
 func (ss *StockService) SendFsInfo() error {
 	return ss.repo.SendFsInfo()
 }
+
+func (ss *StockService) GetStockHistoryDataDateRange(code, start, end string) ([]*domain.StockHistoryDate, error) {
+	return ss.repo.GetStockHistoryDataDateRange(code, start, end)
+}

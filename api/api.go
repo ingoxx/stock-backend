@@ -47,10 +47,13 @@ func Start() {
 	privateMux.HandleFunc("/v1/stock/notice/switch", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.StockNoticeSwitchHandler).ServeHTTP)
 	privateMux.HandleFunc("/v1/stock/filter/good", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetGoodStocksHandler).ServeHTTP)
 	privateMux.HandleFunc("/v1/stock/filter/good/history", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.FilterGoodStocksHistoryHandler).ServeHTTP)
+
 	// 飞书机器人配置
 	privateMux.HandleFunc("POST /v1/stock/notice/config", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.StockNoticeFsSetHandler).ServeHTTP)
 	// 测试飞书是否配置成功
 	privateMux.HandleFunc("POST /v1/stock/send-msg-test", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.SendFsInfoHandler).ServeHTTP)
+	// 按指定日期查询历史行情数据
+	privateMux.HandleFunc("GET /v1/stock/history/date-range", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockHistoryDataDateRangeHandler).ServeHTTP)
 	authMux := middleware.AuthMiddleware(privateMux, rdbConn)
 
 	// 本地测试允许跨域

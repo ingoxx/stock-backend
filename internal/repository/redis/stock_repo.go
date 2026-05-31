@@ -18,18 +18,20 @@ import (
 )
 
 const (
-	pythonBin                = "/usr/local/python3.10/bin/python3.10"
-	pythonFile               = "/root/pyscript/spot/stock_data_real_time.py"
-	stockRtDataFile          = "/root/pyscript/spot/get_stock_real_time.py"
-	filterGoodStockFile      = "/root/pyscript/spot/filter_good_stock.py"
-	feishuSendTest           = "/root/pyscript/spot/stock_notice.py"
-	stockRealTimeDataKey     = "stock_real_time_data"
-	stockTradeHistoryDataKey = "stock_trade_history_data"
-	stockRtDataKey           = "get_stock_rt_data"
-	stockRealTimeSwitch      = "stock_real_time_switch"
-	stockNoticeKey           = "stock_real_time_notice"
-	filterGoodStockKey       = "filter_good_stock"
-	stockFsSetKey            = "fei_bot"
+	pythonBin                    = "/usr/local/python3.10/bin/python3.10"
+	pythonFile                   = "/root/pyscript/spot/stock_data_real_time.py"
+	stockRtDataFile              = "/root/pyscript/spot/get_stock_real_time.py"
+	filterGoodStockFile          = "/root/pyscript/spot/filter_good_stock.py"
+	stockHistoryDataFile         = "/root/pyscript/spot/stock_history_data_day_by_day.py"
+	feishuSendTest               = "/root/pyscript/spot/stock_notice.py"
+	stockRealTimeDataKey         = "stock_real_time_data"
+	stockTradeHistoryDataKey     = "stock_trade_history_data"
+	stockRtDataKey               = "get_stock_rt_data"
+	stockRealTimeSwitch          = "stock_real_time_switch"
+	stockNoticeKey               = "stock_real_time_notice"
+	filterGoodStockKey           = "filter_good_stock"
+	stockFsSetKey                = "fei_bot"
+	stockHistoryDataDateRangeKey = "stock_history_date_range"
 )
 
 type StockRepo struct {
@@ -596,6 +598,29 @@ func (sr *StockRepo) CheckStockNoticeFsSetStatus() bool {
 	}
 
 	return true
+}
+
+func (sr *StockRepo) GetStockHistoryDataDateRange(code, start, end string) ([]*domain.StockHistoryDate, error) {
+	var md []*domain.StockHistoryDate
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	command := exec.CommandContext(ctx, pythonBin, stockHistoryDataFile, code, start, end)
+	if err := command.Run(); err != nil {
+		return md, err
+	}
+
+	result, err := sr.client.HGet(stockHistoryDataDateRangeKey, code).Result()
+	if err != nil {
+		return md, err
+	}
+
+	if err := json.Unmarshal([]byte(result), &md); err != nil {
+		return nil, err
+	}
+
+	return md, nil
 }
 
 func (sr *StockRepo) runScript(fileName string, async bool, args ...interface{}) error {

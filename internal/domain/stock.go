@@ -119,4 +119,5 @@ type StockInfoRepository interface {
 	StockNoticeFsSet(webHook, word string) error
 	CheckStockNoticeFsSetStatus() bool
 	SendFsInfo() error
+	GetStockHistoryDataDateRange(code, start, end string) ([]*StockHistoryDate, error)
 }

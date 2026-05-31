@@ -918,3 +918,34 @@ func (sh *StockHandler) SendFsInfoHandler(w http.ResponseWriter, r *http.Request
 		Data: "",
 	})
 }
+
+func (sh *StockHandler) GetStockHistoryDataDateRangeHandler(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	code := queryParams.Get("code")
+	start := queryParams.Get("start")
+	end := queryParams.Get("end")
+	if code == "" || start == "" || end == "" {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  "required parameter 'code' or 'start_date' or 'end_date' is missing or empty.",
+			Data: "",
+		})
+		return
+	}
+
+	data, err := sh.svc.GetStockHistoryDataDateRange(code, start, end)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
