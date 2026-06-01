@@ -3,6 +3,8 @@ package redis
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,7 +25,7 @@ const (
 	stockRtDataFile              = "/root/pyscript/spot/get_stock_real_time.py"
 	filterGoodStockFile          = "/root/pyscript/spot/filter_good_stock.py"
 	stockHistoryDataFile         = "/root/pyscript/spot/stock_history_data_day_by_day.py"
-	feishuSendTest               = "/root/pyscript/spot/stock_notice.py"
+	feishuSendTestFile           = "/root/pyscript/spot/stock_notice.py"
 	stockRealTimeDataKey         = "stock_real_time_data"
 	stockTradeHistoryDataKey     = "stock_trade_history_data"
 	stockRtDataKey               = "get_stock_rt_data"
@@ -32,6 +34,7 @@ const (
 	filterGoodStockKey           = "filter_good_stock"
 	stockFsSetKey                = "fei_bot"
 	stockHistoryDataDateRangeKey = "stock_history_date_range"
+	stockRealTimeDataLockKey     = "lock:stock_real_time_data"
 )
 
 type StockRepo struct {
@@ -45,6 +48,55 @@ func NewStockRepo(client *redis.Client) domain.StockInfoRepository {
 	return &StockRepo{
 		client: client,
 	}
+}
+
+func (sr *StockRepo) withStockRealTimeDataLock(fn func() error) error {
+	token, err := newLockToken()
+	if err != nil {
+		return err
+	}
+
+	const (
+		lockTTL  = 2 * time.Minute
+		lockWait = 30 * time.Second
+	)
+
+	deadline := time.Now().Add(lockWait)
+	for {
+		ok, err := sr.client.SetNX(stockRealTimeDataLockKey, token, lockTTL).Result()
+		if err != nil {
+			return err
+		}
+		if ok {
+			break
+		}
+
+		if time.Now().After(deadline) {
+			return fmt.Errorf("stock realtime data is busy")
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	defer func() {
+		_, _ = sr.client.Eval(`
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+	return redis.call("DEL", KEYS[1])
+end
+return 0
+`, []string{stockRealTimeDataLockKey}, token).Result()
+	}()
+
+	return fn()
+}
+
+func newLockToken() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(b), nil
 }
 
 func (sr *StockRepo) GetStockList() ([]*domain.StockInfo, error) {
@@ -239,22 +291,32 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 func (sr *StockRepo) GetStockRealTimeData(code, price, hold string) ([]*domain.StockInfo, error) {
 	const maxStocks = 10
 
-	if err := sr.checkStockLimit(maxStocks); err != nil {
+	var data []*domain.StockInfo
+	err := sr.withStockRealTimeDataLock(func() error {
+		if err := sr.checkStockLimit(maxStocks); err != nil {
+			return err
+		}
+
+		if err := sr.refreshStockRealTimeData(code, price, hold); err != nil {
+			return err
+		}
+
+		var err error
+		data, err = sr.loadStockRealTimeData()
+		return err
+	})
+	if err != nil {
 		return nil, err
 	}
 
-	if err := sr.refreshStockRealTimeData(code, price, hold); err != nil {
-		return nil, err
-	}
-
-	return sr.loadStockRealTimeData()
+	return data, nil
 }
 
 func (sr *StockRepo) isInStockTime() bool {
 	now := time.Now()
 
-	// 获取当前星期 (time.Monday 为 1, time.Sunday 为 0)
-	// 在 Go 中，周一到周五对应 weekday 1 到 5
+	// 获取当前星期 (time.Monday �?1, time.Sunday �?0)
+	// �?Go 中，周一到周五对�?weekday 1 �?5
 	weekday := now.Weekday()
 	if weekday == time.Saturday || weekday == time.Sunday {
 		return false
@@ -276,7 +338,7 @@ func (sr *StockRepo) isInStockTime() bool {
 	return isMorning || isAfternoon
 }
 
-// GetStockRealTimeList 从列表中获取每个最新行情数据, 需要在开市时间内或者实时获取开关是否开启
+// GetStockRealTimeList returns latest realtime data
 func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
 	result, err := sr.client.Get(stockRealTimeSwitch).Result()
 	if err != nil {
@@ -301,10 +363,12 @@ func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
 				code := item.Code
 
 				eg.Go(func() error {
-					if err := sr.refreshStockRealTimeData(code, "", ""); err != nil {
-						return fmt.Errorf("refresh %s failed: %w", code, err)
-					}
-					return nil
+					return sr.withStockRealTimeDataLock(func() error {
+						if err := sr.refreshStockRealTimeData(code, "", ""); err != nil {
+							return fmt.Errorf("refresh %s failed: %w", code, err)
+						}
+						return nil
+					})
 				})
 			}
 
@@ -380,11 +444,13 @@ func (sr *StockRepo) loadStockRealTimeData() ([]*domain.StockInfo, error) {
 }
 
 func (sr *StockRepo) DelSelfSelectedStock(code string) error {
-	if err := sr.client.HDel(stockRealTimeDataKey, code).Err(); err != nil {
-		return err
-	}
+	return sr.withStockRealTimeDataLock(func() error {
+		if err := sr.client.HDel(stockRealTimeDataKey, code).Err(); err != nil {
+			return err
+		}
 
-	return nil
+		return nil
+	})
 }
 
 // StockNoticeSwitch 1,close;2,open;3,check;default 1
@@ -418,28 +484,35 @@ func (sr *StockRepo) StockNoticeSwitch(status int) (int, error) {
 	return status, nil
 }
 
-// UpdateStockDealStatus 更新交易状态
+// UpdateStockDealStatus updates trading status
 func (sr *StockRepo) UpdateStockDealStatus(code string, status int) ([]*domain.StockInfo, error) {
-	result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
-	if errors.Is(err, redis.Nil) || result == "" {
-		return sr.GetStockRealTimeList()
-	}
+	err := sr.withStockRealTimeDataLock(func() error {
+		result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
+		if errors.Is(err, redis.Nil) || result == "" {
+			return nil
+		}
 
-	var info domain.StockInfo
-	if err := json.Unmarshal([]byte(result), &info); err != nil {
-		return nil, fmt.Errorf("unmarshal stock info: %w", err)
-	}
+		var info domain.StockInfo
+		if err := json.Unmarshal([]byte(result), &info); err != nil {
+			return fmt.Errorf("unmarshal stock info: %w", err)
+		}
 
-	now := time.Now()
-	info.TradeType = status
-	info.Ticktime = domain.FormatTime(now.Format("2006-01-02 15:04:05"))
+		now := time.Now()
+		info.TradeType = status
+		info.Ticktime = domain.FormatTime(now.Format("2006-01-02 15:04:05"))
 
-	b, err := json.Marshal(info)
+		b, err := json.Marshal(info)
+		if err != nil {
+			return fmt.Errorf("marshal stock info: %w", err)
+		}
+
+		if err := sr.client.HSet(stockRealTimeDataKey, code, string(b)).Err(); err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("marshal stock info: %w", err)
-	}
-
-	if err := sr.client.HSet(stockRealTimeDataKey, code, string(b)).Err(); err != nil {
 		return nil, err
 	}
 
@@ -465,31 +538,38 @@ func (sr *StockRepo) GetHistoryTradeDataList() ([]*domain.StockInfo, error) {
 }
 
 func (sr *StockRepo) AddHistoryTradeData(code string, TradeType int) ([]*domain.StockInfo, error) {
-	result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
-	if errors.Is(err, redis.Nil) || result == "" {
-		return sr.GetHistoryTradeDataList()
-	}
+	err := sr.withStockRealTimeDataLock(func() error {
+		result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
+		if errors.Is(err, redis.Nil) || result == "" {
+			return nil
+		}
 
-	var info domain.StockInfo
-	if err := json.Unmarshal([]byte(result), &info); err != nil {
-		return nil, fmt.Errorf("unmarshal stock info: %w", err)
-	}
+		var info domain.StockInfo
+		if err := json.Unmarshal([]byte(result), &info); err != nil {
+			return fmt.Errorf("unmarshal stock info: %w", err)
+		}
 
-	info.TradeType = TradeType
+		info.TradeType = TradeType
 
-	b, err := json.Marshal(info)
+		b, err := json.Marshal(info)
+		if err != nil {
+			return fmt.Errorf("fail to marshal stock info: %w", err)
+		}
+
+		if err := sr.client.RPush(stockTradeHistoryDataKey, string(b)).Err(); err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("fail to marshal stock info: %w", err)
-	}
-
-	if err := sr.client.RPush(stockTradeHistoryDataKey, string(b)).Err(); err != nil {
 		return nil, err
 	}
 
 	return sr.GetHistoryTradeDataList()
 }
 
-// StockRealTimeInfoSwitch 1，是关闭实时请求行情接口；2，是开启实时请求行情接口
+// StockRealTimeInfoSwitch 1=close, 2=open, 3=check, default 1
 func (sr *StockRepo) StockRealTimeInfoSwitch(status int) (string, error) {
 	if err := sr.client.Set(stockRealTimeSwitch, status, 0).Err(); err != nil {
 		return "", err
@@ -584,7 +664,7 @@ func (sr *StockRepo) SendFsInfo() error {
 		return errors.New("please set up Lark Robot first")
 	}
 
-	if err := sr.runScript(feishuSendTest, false); err != nil {
+	if err := sr.runScript(feishuSendTestFile, false); err != nil {
 		return err
 	}
 
@@ -621,6 +701,42 @@ func (sr *StockRepo) GetStockHistoryDataDateRange(code, start, end string) ([]*d
 	}
 
 	return md, nil
+}
+
+// UpdateStockHoldings 修改持仓列表中的股票
+func (sr *StockRepo) UpdateStockHoldings(code string, price float64, quantity int) ([]*domain.StockInfo, error) {
+	err := sr.withStockRealTimeDataLock(func() error {
+		result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
+		if errors.Is(err, redis.Nil) || result == "" {
+			return nil
+		}
+
+		var info domain.StockInfo
+		if err := json.Unmarshal([]byte(result), &info); err != nil {
+			return fmt.Errorf("unmarshal stock info: %w", err)
+		}
+
+		now := time.Now()
+		info.Price = price
+		info.Quantity = quantity
+		info.Ticktime = domain.FormatTime(now.Format("2006-01-02 15:04:05"))
+
+		b, err := json.Marshal(info)
+		if err != nil {
+			return fmt.Errorf("marshal stock info: %w", err)
+		}
+
+		if err := sr.client.HSet(stockRealTimeDataKey, code, string(b)).Err(); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return sr.GetStockRealTimeList()
 }
 
 func (sr *StockRepo) runScript(fileName string, async bool, args ...interface{}) error {

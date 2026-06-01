@@ -109,3 +109,7 @@ func (ss *StockService) SendFsInfo() error {
 func (ss *StockService) GetStockHistoryDataDateRange(code, start, end string) ([]*domain.StockHistoryDate, error) {
 	return ss.repo.GetStockHistoryDataDateRange(code, start, end)
 }
+
+func (ss *StockService) UpdateStockHoldings(code string, price float64, quantity int) ([]*domain.StockInfo, error) {
+	return ss.repo.UpdateStockHoldings(code, price, quantity)
+}

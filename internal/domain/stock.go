@@ -120,4 +120,5 @@ type StockInfoRepository interface {
 	CheckStockNoticeFsSetStatus() bool
 	SendFsInfo() error
 	GetStockHistoryDataDateRange(code, start, end string) ([]*StockHistoryDate, error)
+	UpdateStockHoldings(code string, price float64, quantity int) ([]*StockInfo, error)
 }

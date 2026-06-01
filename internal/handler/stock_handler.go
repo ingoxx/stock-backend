@@ -55,6 +55,12 @@ type FsNoticeConfigReq struct {
 	Word    string `json:"word"`
 }
 
+type UpdateStockHoldingsReq struct {
+	Code     string  `json:"code" validate:"required"`
+	Price    float64 `json:"price" validate:"required"`
+	Quantity int     `json:"quantity" validate:"required"`
+}
+
 func NewStockHandler(svc *service.StockService, vd *validator.Validate) *StockHandler {
 	return &StockHandler{svc: svc, vd: vd}
 }
@@ -937,6 +943,65 @@ func (sh *StockHandler) GetStockHistoryDataDateRangeHandler(w http.ResponseWrite
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) UpdateStockHoldingsHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	var ssd UpdateStockHoldingsReq
+	if err := json.Unmarshal(body, &ssd); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	if err := sh.vd.Struct(ssd); err != nil {
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			for _, e := range validationErrors {
+				utils.ResponseJSON(w, StockResponse{
+					Code: 1003,
+					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
+					Data: "",
+				})
+				return
+			}
+		}
+
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1003,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	data, err := sh.svc.UpdateStockHoldings(ssd.Code, ssd.Price, ssd.Quantity)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1004,
 			Msg:  err.Error(),
 			Data: "",
 		})

@@ -47,7 +47,8 @@ func Start() {
 	privateMux.HandleFunc("/v1/stock/notice/switch", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.StockNoticeSwitchHandler).ServeHTTP)
 	privateMux.HandleFunc("/v1/stock/filter/good", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetGoodStocksHandler).ServeHTTP)
 	privateMux.HandleFunc("/v1/stock/filter/good/history", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.FilterGoodStocksHistoryHandler).ServeHTTP)
-
+	// 修改持仓列表中的股票成本以及股数
+	privateMux.HandleFunc("POST /v1/stock/holding/update", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.UpdateStockHoldingsHandler).ServeHTTP)
 	// 飞书机器人配置
 	privateMux.HandleFunc("POST /v1/stock/notice/config", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.StockNoticeFsSetHandler).ServeHTTP)
 	// 测试飞书是否配置成功
