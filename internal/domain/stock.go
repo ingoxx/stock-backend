@@ -94,6 +94,32 @@ type FsNoticeConfig struct {
 	Word    string `json:"word"`
 }
 
+// CapitalInflow 实时的资金流向
+type CapitalInflow struct {
+	IndustryCode         string  `json:"industry_code"`
+	IndustryName         string  `json:"industry_name"`
+	IndustryIndex        float64 `json:"industry_index"`
+	ChangePercent        float64 `json:"change_percent"`
+	NetInflowBillionYuan float64 `json:"net_inflow_billion_yuan"`
+	NetInflowPercent     float64 `json:"net_inflow_percent"`
+}
+
+// ShIndex 上证指数的数据结构
+type ShIndex struct {
+	Name          string  `json:"name"`
+	Date          string  `json:"date"`
+	Time          string  `json:"time"`
+	Open          float64 `json:"open"`
+	High          float64 `json:"high"`
+	Low           float64 `json:"low"`
+	Close         float64 `json:"close"`
+	PrevClose     float64 `json:"prev_close"`
+	ChangeAmount  float64 `json:"change_amount"`
+	ChangePercent float64 `json:"change_percent"`
+	Amount        float64 `json:"amount"`
+	Volume        int     `json:"volume"`
+}
+
 type StockInfoRepository interface {
 	GetStockList() ([]*StockInfo, error)
 	GetStockInfoForDataList(code string) ([]*StockHistoryDate, error)
@@ -121,4 +147,6 @@ type StockInfoRepository interface {
 	SendFsInfo() error
 	GetStockHistoryDataDateRange(code, start, end string) ([]*StockHistoryDate, error)
 	UpdateStockHoldings(code string, price float64, quantity int) ([]*StockInfo, error)
+	GetCapitalInflowData(isRun bool) ([]*CapitalInflow, error)
+	GetShIndexRealTimeData(isRun bool) (*ShIndex, error)
 }

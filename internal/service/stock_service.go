@@ -113,3 +113,11 @@ func (ss *StockService) GetStockHistoryDataDateRange(code, start, end string) ([
 func (ss *StockService) UpdateStockHoldings(code string, price float64, quantity int) ([]*domain.StockInfo, error) {
 	return ss.repo.UpdateStockHoldings(code, price, quantity)
 }
+
+func (ss *StockService) GetShIndexRealTimeData(isRun bool) (*domain.ShIndex, error) {
+	return ss.repo.GetShIndexRealTimeData(isRun)
+}
+
+func (ss *StockService) GetCapitalInflowData(isRun bool) ([]*domain.CapitalInflow, error) {
+	return ss.repo.GetCapitalInflowData(isRun)
+}

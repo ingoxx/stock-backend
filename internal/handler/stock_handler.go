@@ -130,21 +130,34 @@ func (sh *StockHandler) GetStockIndustryListHandler(w http.ResponseWriter, r *ht
 }
 
 func (sh *StockHandler) GetIndustryStockUpDownHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
+	ud, err := sh.svc.GetIndustryStockUpDown()
+	if err != nil {
+		http.Error(w, err.Error(), 1001)
 		return
 	}
 
-	ud, err := sh.svc.GetIndustryStockUpDown()
+	data, err := sh.svc.GetShIndexRealTimeData(false)
 	if err != nil {
-		http.Error(w, err.Error(), 200)
+		http.Error(w, err.Error(), 1002)
 		return
 	}
+
+	inflowData, err := sh.svc.GetCapitalInflowData(false)
+	if err != nil {
+		http.Error(w, err.Error(), 1002)
+		return
+	}
+
+	md := make(map[string]interface{})
+	md["data"] = ud
+	md["feishu_set_status"] = sh.svc.CheckStockNoticeFsSetStatus()
+	md["sh_index_data"] = data
+	md["capital_inflow_data"] = inflowData
 
 	utils.ResponseJSON(w, StockResponse{
 		Code:  1000,
 		Msg:   "ok",
-		Data:  ud,
+		Data:  md,
 		Other: sh.svc.CheckStockNoticeFsSetStatus(),
 	})
 }
@@ -1002,6 +1015,43 @@ func (sh *StockHandler) UpdateStockHoldingsHandler(w http.ResponseWriter, r *htt
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1004,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) GetShIndexRealTimeDataHandler(w http.ResponseWriter, r *http.Request) {
+	data, err := sh.svc.GetShIndexRealTimeData(true)
+
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) GetCapitalInflowDataHandler(w http.ResponseWriter, r *http.Request) {
+	data, err := sh.svc.GetCapitalInflowData(true)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
 		})

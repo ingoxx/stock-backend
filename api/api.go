@@ -29,7 +29,7 @@ func Start() {
 	privateMux.HandleFunc("/v1/stock/days/detail", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockInfoForDataListHandler).ServeHTTP)
 	privateMux.HandleFunc("/v1/stock/industry/list", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockIndustryListHandler).ServeHTTP)
 	// 一并返回飞书预警信息是否已经配置
-	privateMux.HandleFunc("/v1/stock/industry/up-down", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetIndustryStockUpDownHandler).ServeHTTP)
+	privateMux.HandleFunc("GET /v1/stock/industry/up-down", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetIndustryStockUpDownHandler).ServeHTTP)
 	privateMux.HandleFunc("/v1/stock/market-data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockMarketDataHandler).ServeHTTP)
 	privateMux.HandleFunc("/v1/stock/switch", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockDataSwitchHandler).ServeHTTP)
 	privateMux.HandleFunc("/v1/stock/run-status", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockDataStatusHandler).ServeHTTP)
@@ -47,6 +47,11 @@ func Start() {
 	privateMux.HandleFunc("/v1/stock/notice/switch", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.StockNoticeSwitchHandler).ServeHTTP)
 	privateMux.HandleFunc("/v1/stock/filter/good", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetGoodStocksHandler).ServeHTTP)
 	privateMux.HandleFunc("/v1/stock/filter/good/history", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.FilterGoodStocksHistoryHandler).ServeHTTP)
+
+	// 获取上证指数
+	privateMux.HandleFunc("GET /v1/stock/sh-index", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetShIndexRealTimeDataHandler).ServeHTTP)
+	// 获取资金流向
+	privateMux.HandleFunc("GET /v1/stock/capital-inflow", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetCapitalInflowDataHandler).ServeHTTP)
 	// 修改持仓列表中的股票成本以及股数
 	privateMux.HandleFunc("POST /v1/stock/holding/update", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.UpdateStockHoldingsHandler).ServeHTTP)
 	// 飞书机器人配置

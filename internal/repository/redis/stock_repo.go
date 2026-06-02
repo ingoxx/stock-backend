@@ -26,6 +26,8 @@ const (
 	filterGoodStockFile          = "/root/pyscript/spot/filter_good_stock.py"
 	stockHistoryDataFile         = "/root/pyscript/spot/stock_history_data_day_by_day.py"
 	feishuSendTestFile           = "/root/pyscript/spot/stock_notice.py"
+	shIndexFile                  = "/root/pyscript/spot/get_stock_sh_index_rt_data.py"
+	capitalInFlowFile            = "/root/pyscript/spot/get_stock_capital_inflow_data.py"
 	stockRealTimeDataKey         = "stock_real_time_data"
 	stockTradeHistoryDataKey     = "stock_trade_history_data"
 	stockRtDataKey               = "get_stock_rt_data"
@@ -34,6 +36,8 @@ const (
 	filterGoodStockKey           = "filter_good_stock"
 	stockFsSetKey                = "fei_bot"
 	stockHistoryDataDateRangeKey = "stock_history_date_range"
+	shIndexKey                   = "sh_index_rt"
+	capitalInFlowKey             = "capital_inflow"
 	stockRealTimeDataLockKey     = "lock:stock_real_time_data"
 )
 
@@ -737,6 +741,46 @@ func (sr *StockRepo) UpdateStockHoldings(code string, price float64, quantity in
 	}
 
 	return sr.GetStockRealTimeList()
+}
+
+func (sr *StockRepo) GetShIndexRealTimeData(isRun bool) (*domain.ShIndex, error) {
+	if isRun {
+		if err := sr.runScript(shIndexFile, false); err != nil {
+			return nil, err
+		}
+	}
+
+	result, err := sr.client.HGet(shIndexKey, "sh").Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var data *domain.ShIndex
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (sr *StockRepo) GetCapitalInflowData(isRun bool) ([]*domain.CapitalInflow, error) {
+	if isRun {
+		if err := sr.runScript(capitalInFlowFile, false); err != nil {
+			return nil, err
+		}
+	}
+
+	result, err := sr.client.HGet(capitalInFlowKey, "cf").Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var data []*domain.CapitalInflow
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 func (sr *StockRepo) runScript(fileName string, async bool, args ...interface{}) error {
