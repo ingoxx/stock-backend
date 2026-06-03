@@ -20,14 +20,15 @@ import (
 )
 
 const (
-	pythonBin                    = "/usr/local/python3.10/bin/python3.10"
-	pythonFile                   = "/root/pyscript/spot/stock_data_real_time.py"
-	stockRtDataFile              = "/root/pyscript/spot/get_stock_real_time.py"
-	filterGoodStockFile          = "/root/pyscript/spot/filter_good_stock.py"
-	stockHistoryDataFile         = "/root/pyscript/spot/stock_history_data_day_by_day.py"
-	feishuSendTestFile           = "/root/pyscript/spot/stock_notice.py"
-	shIndexFile                  = "/root/pyscript/spot/get_stock_sh_index_rt_data.py"
-	capitalInFlowFile            = "/root/pyscript/spot/get_stock_capital_inflow_data.py"
+	pythonBin            = "/usr/local/python3.10/bin/python3.10"
+	pythonFile           = "/root/pyscript/spot/stock_data_real_time.py"
+	stockRtDataFile      = "/root/pyscript/spot/get_stock_real_time.py"
+	filterGoodStockFile  = "/root/pyscript/spot/filter_good_stock.py"
+	stockHistoryDataFile = "/root/pyscript/spot/stock_history_data_day_by_day.py"
+	feishuSendTestFile   = "/root/pyscript/spot/stock_notice.py"
+	shIndexFile          = "/root/pyscript/spot/get_stock_sh_index_rt_data.py"
+	capitalInFlowFile    = "/root/pyscript/spot/get_stock_capital_inflow_data.py"
+	// redis key
 	stockRealTimeDataKey         = "stock_real_time_data"
 	stockTradeHistoryDataKey     = "stock_trade_history_data"
 	stockRtDataKey               = "get_stock_rt_data"

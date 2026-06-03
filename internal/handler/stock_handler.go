@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -66,10 +64,6 @@ func NewStockHandler(svc *service.StockService, vd *validator.Validate) *StockHa
 }
 
 func (sh *StockHandler) GetStockListHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	list, err := sh.svc.GetStockList()
 	if err != nil {
@@ -85,10 +79,6 @@ func (sh *StockHandler) GetStockListHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (sh *StockHandler) GetStockInfoForDataListHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "request method error", 403)
-		return
-	}
 
 	code := r.FormValue("code")
 	if code == "" {
@@ -110,10 +100,6 @@ func (sh *StockHandler) GetStockInfoForDataListHandler(w http.ResponseWriter, r 
 }
 
 func (sh *StockHandler) GetStockIndustryListHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	list, err := sh.svc.GetStockIndustryList()
 	if err != nil {
@@ -163,10 +149,6 @@ func (sh *StockHandler) GetIndustryStockUpDownHandler(w http.ResponseWriter, r *
 }
 
 func (sh *StockHandler) GetStockMarketDataHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	ud, err := sh.svc.GetStockMarketData()
 	if err != nil {
@@ -183,10 +165,6 @@ func (sh *StockHandler) GetStockMarketDataHandler(w http.ResponseWriter, r *http
 }
 
 func (sh *StockHandler) GetStockDataSwitchHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	if err := sh.svc.GetStockDataSwitch(); err != nil {
 		http.Error(w, err.Error(), 200)
@@ -202,10 +180,6 @@ func (sh *StockHandler) GetStockDataSwitchHandler(w http.ResponseWriter, r *http
 }
 
 func (sh *StockHandler) GetStockDataStatusHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	if err := sh.svc.GetStockDataStatus(); err != nil {
 		utils.ResponseJSON(w, StockResponse{
@@ -224,10 +198,6 @@ func (sh *StockHandler) GetStockDataStatusHandler(w http.ResponseWriter, r *http
 }
 
 func (sh *StockHandler) GetIndustryDataHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	queryParams := r.URL.Query()
 	name := queryParams.Get("name")
@@ -258,10 +228,6 @@ func (sh *StockHandler) GetIndustryDataHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (sh *StockHandler) GetStockCusDaysDataHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	queryParams := r.URL.Query()
 	code := queryParams.Get("code")
@@ -297,10 +263,6 @@ func (sh *StockHandler) GetStockCusDaysDataHandler(w http.ResponseWriter, r *htt
 }
 
 func (sh *StockHandler) GetStockInfoDataHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	queryParams := r.URL.Query()
 	code := queryParams.Get("code")
@@ -331,10 +293,6 @@ func (sh *StockHandler) GetStockInfoDataHandler(w http.ResponseWriter, r *http.R
 }
 
 func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	queryParams := r.URL.Query()
 	code := queryParams.Get("code")
@@ -381,10 +339,6 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 }
 
 func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	data, err := sh.svc.GetStockRealTimeList()
 	if err != nil {
@@ -418,10 +372,6 @@ func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *ht
 }
 
 func (sh *StockHandler) DelSelfSelectedStockHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -433,40 +383,15 @@ func (sh *StockHandler) DelSelfSelectedStockHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	var ssd GeneralStockReq
-	if err := json.Unmarshal(body, &ssd); err != nil {
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1002,
-			Msg:  err.Error(),
-			Data: "",
-		})
+	req, err := bindAndValidate[GeneralStockReq](body, sh.vd, func(r *GeneralStockReq) {
+		r.Code = strings.TrimSpace(r.Code)
+	})
+	if err != nil {
+		writeReqError(w, err)
 		return
 	}
 
-	ssd.Code = strings.TrimSpace(ssd.Code)
-
-	if err := sh.vd.Struct(ssd); err != nil {
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			for _, e := range validationErrors {
-				utils.ResponseJSON(w, StockResponse{
-					Code: 1003,
-					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
-					Data: "",
-				})
-				return
-			}
-		}
-
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1003,
-			Msg:  err.Error(),
-			Data: "",
-		})
-		return
-	}
-
-	if err := sh.svc.DelSelfSelectedStock(ssd.Code); err != nil {
+	if err := sh.svc.DelSelfSelectedStock(req.Code); err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1004,
 			Msg:  err.Error(),
@@ -483,11 +408,6 @@ func (sh *StockHandler) DelSelfSelectedStockHandler(w http.ResponseWriter, r *ht
 }
 
 func (sh *StockHandler) UpdateStockDealStatusHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "", 403)
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
@@ -498,40 +418,15 @@ func (sh *StockHandler) UpdateStockDealStatusHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	var ssd UpdateStockDealStatusReq
-	if err := json.Unmarshal(body, &ssd); err != nil {
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1002,
-			Msg:  err.Error(),
-			Data: "",
-		})
+	req, err := bindAndValidate[UpdateStockDealStatusReq](body, sh.vd, func(r *UpdateStockDealStatusReq) {
+		r.Code = strings.TrimSpace(r.Code)
+	})
+	if err != nil {
+		writeReqError(w, err)
 		return
 	}
 
-	ssd.Code = strings.TrimSpace(ssd.Code)
-
-	if err := sh.vd.Struct(ssd); err != nil {
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			for _, e := range validationErrors {
-				utils.ResponseJSON(w, StockResponse{
-					Code: 1003,
-					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
-					Data: "",
-				})
-				return
-			}
-		}
-
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1003,
-			Msg:  err.Error(),
-			Data: "",
-		})
-		return
-	}
-
-	data, err := sh.svc.UpdateStockDealStatus(ssd.Code, ssd.Status)
+	data, err := sh.svc.UpdateStockDealStatus(req.Code, req.Status)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1004,
@@ -549,11 +444,6 @@ func (sh *StockHandler) UpdateStockDealStatusHandler(w http.ResponseWriter, r *h
 }
 
 func (sh *StockHandler) AddHistoryTradeDataHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "", 403)
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
@@ -564,40 +454,15 @@ func (sh *StockHandler) AddHistoryTradeDataHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	var ssd AddHistoryTradeReq
-	if err := json.Unmarshal(body, &ssd); err != nil {
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1002,
-			Msg:  err.Error(),
-			Data: "",
-		})
+	req, err := bindAndValidate[AddHistoryTradeReq](body, sh.vd, func(r *AddHistoryTradeReq) {
+		r.Code = strings.TrimSpace(r.Code)
+	})
+	if err != nil {
+		writeReqError(w, err)
 		return
 	}
 
-	ssd.Code = strings.TrimSpace(ssd.Code)
-
-	if err := sh.vd.Struct(ssd); err != nil {
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			for _, e := range validationErrors {
-				utils.ResponseJSON(w, StockResponse{
-					Code: 1003,
-					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
-					Data: "",
-				})
-				return
-			}
-		}
-
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1003,
-			Msg:  err.Error(),
-			Data: "",
-		})
-		return
-	}
-
-	data, err := sh.svc.AddHistoryTradeData(ssd.Code, ssd.TradeType)
+	data, err := sh.svc.AddHistoryTradeData(req.Code, req.TradeType)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1004,
@@ -615,11 +480,6 @@ func (sh *StockHandler) AddHistoryTradeDataHandler(w http.ResponseWriter, r *htt
 }
 
 func (sh *StockHandler) GetHistoryTradeDataListHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Invalid Method", 403)
-		return
-	}
-
 	data, err := sh.svc.GetHistoryTradeDataList()
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
@@ -638,11 +498,6 @@ func (sh *StockHandler) GetHistoryTradeDataListHandler(w http.ResponseWriter, r 
 }
 
 func (sh *StockHandler) StockRealTimeInfoSwitchHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "", 403)
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
@@ -653,38 +508,13 @@ func (sh *StockHandler) StockRealTimeInfoSwitchHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	var ssd StockSwitchReq
-	if err := json.Unmarshal(body, &ssd); err != nil {
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1002,
-			Msg:  err.Error(),
-			Data: "",
-		})
+	req, err := bindAndValidate[StockSwitchReq](body, sh.vd, func(r *StockSwitchReq) {})
+	if err != nil {
+		writeReqError(w, err)
 		return
 	}
 
-	if err := sh.vd.Struct(ssd); err != nil {
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			for _, e := range validationErrors {
-				utils.ResponseJSON(w, StockResponse{
-					Code: 1003,
-					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
-					Data: "",
-				})
-				return
-			}
-		}
-
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1003,
-			Msg:  err.Error(),
-			Data: "",
-		})
-		return
-	}
-
-	data, err := sh.svc.StockRealTimeInfoSwitch(ssd.Status)
+	data, err := sh.svc.StockRealTimeInfoSwitch(req.Status)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1004,
@@ -702,10 +532,6 @@ func (sh *StockHandler) StockRealTimeInfoSwitchHandler(w http.ResponseWriter, r 
 }
 
 func (sh *StockHandler) GetStockRtDataHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Invalid Method", 403)
-	}
-
 	queryParams := r.URL.Query()
 	code := queryParams.Get("code")
 
@@ -736,11 +562,6 @@ func (sh *StockHandler) GetStockRtDataHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (sh *StockHandler) StockNoticeSwitchHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "", 403)
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
@@ -751,38 +572,13 @@ func (sh *StockHandler) StockNoticeSwitchHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	var ssd StockSwitchReq
-	if err := json.Unmarshal(body, &ssd); err != nil {
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1002,
-			Msg:  err.Error(),
-			Data: "",
-		})
+	req, err := bindAndValidate[StockSwitchReq](body, sh.vd, func(r *StockSwitchReq) {})
+	if err != nil {
+		writeReqError(w, err)
 		return
 	}
 
-	if err := sh.vd.Struct(ssd); err != nil {
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			for _, e := range validationErrors {
-				utils.ResponseJSON(w, StockResponse{
-					Code: 1003,
-					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
-					Data: "",
-				})
-				return
-			}
-		}
-
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1003,
-			Msg:  err.Error(),
-			Data: "",
-		})
-		return
-	}
-
-	data, err := sh.svc.StockNoticeSwitch(ssd.Status)
+	data, err := sh.svc.StockNoticeSwitch(req.Status)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1004,
@@ -800,11 +596,6 @@ func (sh *StockHandler) StockNoticeSwitchHandler(w http.ResponseWriter, r *http.
 }
 
 func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
-
 	queryParams := r.URL.Query()
 	industry := queryParams.Get("industry")
 	days := queryParams.Get("days")
@@ -841,11 +632,6 @@ func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (sh *StockHandler) FilterGoodStocksHistoryHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
-
 	data, err := sh.svc.FilterGoodStocksHistory()
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
@@ -874,38 +660,13 @@ func (sh *StockHandler) StockNoticeFsSetHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	var ssd FsNoticeConfigReq
-	if err := json.Unmarshal(body, &ssd); err != nil {
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1002,
-			Msg:  err.Error(),
-			Data: "",
-		})
+	req, err := bindAndValidate[FsNoticeConfigReq](body, sh.vd, func(r *FsNoticeConfigReq) {})
+	if err != nil {
+		writeReqError(w, err)
 		return
 	}
 
-	if err := sh.vd.Struct(ssd); err != nil {
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			for _, e := range validationErrors {
-				utils.ResponseJSON(w, StockResponse{
-					Code: 1003,
-					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
-					Data: "",
-				})
-				return
-			}
-		}
-
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1004,
-			Msg:  err.Error(),
-			Data: "",
-		})
-		return
-	}
-
-	if err := sh.svc.StockNoticeFsSet(ssd.WebHook, ssd.Word); err != nil {
+	if err := sh.svc.StockNoticeFsSet(req.WebHook, req.Word); err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1005,
 			Msg:  err.Error(),
@@ -980,38 +741,15 @@ func (sh *StockHandler) UpdateStockHoldingsHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	var ssd UpdateStockHoldingsReq
-	if err := json.Unmarshal(body, &ssd); err != nil {
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1002,
-			Msg:  err.Error(),
-			Data: "",
-		})
+	req, err := bindAndValidate[UpdateStockHoldingsReq](body, sh.vd, func(r *UpdateStockHoldingsReq) {
+		r.Code = strings.TrimSpace(r.Code)
+	})
+	if err != nil {
+		writeReqError(w, err)
 		return
 	}
 
-	if err := sh.vd.Struct(ssd); err != nil {
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			for _, e := range validationErrors {
-				utils.ResponseJSON(w, StockResponse{
-					Code: 1003,
-					Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
-					Data: "",
-				})
-				return
-			}
-		}
-
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1003,
-			Msg:  err.Error(),
-			Data: "",
-		})
-		return
-	}
-
-	data, err := sh.svc.UpdateStockHoldings(ssd.Code, ssd.Price, ssd.Quantity)
+	data, err := sh.svc.UpdateStockHoldings(req.Code, req.Price, req.Quantity)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1004,

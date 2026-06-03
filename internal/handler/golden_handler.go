@@ -2,10 +2,11 @@ package handler
 
 import (
 	"encoding/json"
-	"github.com/ingoxx/stock-backend/internal/service"
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/ingoxx/stock-backend/internal/service"
 )
 
 type GoldenHandler struct {
@@ -29,10 +30,6 @@ type GoldenPriceResponse struct {
 }
 
 func (gh *GoldenHandler) SetGoldenPriceHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "", 403)
-		return
-	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -77,11 +74,6 @@ func (gh *GoldenHandler) SetGoldenPriceHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (gh *GoldenHandler) GetGoldenPriceListHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "", 403)
-		return
-	}
-
 	list, err := gh.svc.GetGoldenPriceList()
 	if err != nil {
 		http.Error(w, err.Error(), 200)
