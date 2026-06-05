@@ -120,6 +120,13 @@ type ShIndex struct {
 	Volume        int     `json:"volume"`
 }
 
+type AiApiKey struct {
+	Name   string   `json:"name"`
+	Url    string   `json:"url"`
+	Secret string   `json:"secret"`
+	Models []string `json:"models"`
+}
+
 type StockInfoRepository interface {
 	GetStockList() ([]*StockInfo, error)
 	GetStockInfoForDataList(code string) ([]*StockHistoryDate, error)
@@ -140,7 +147,7 @@ type StockInfoRepository interface {
 	StockRealTimeInfoSwitch(status int) (string, error)
 	GetStockRtData(code string) (*StockInfo, error)
 	StockNoticeSwitch(status int) (int, error)
-	GetGoodStocks(industry, days, lookBackDays, price string) ([]*FilterGoodStock, error)
+	GetGoodStocks(industry, days, lookBackDays, price, trend string) ([]*FilterGoodStock, error)
 	FilterGoodStocksHistory() ([]string, error)
 	StockNoticeFsSet(webHook, word string) error
 	CheckStockNoticeFsSetStatus() bool

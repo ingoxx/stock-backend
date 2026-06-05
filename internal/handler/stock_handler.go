@@ -124,13 +124,21 @@ func (sh *StockHandler) GetIndustryStockUpDownHandler(w http.ResponseWriter, r *
 
 	data, err := sh.svc.GetShIndexRealTimeData(false)
 	if err != nil {
-		http.Error(w, err.Error(), 1002)
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
 		return
 	}
 
 	inflowData, err := sh.svc.GetCapitalInflowData(false)
 	if err != nil {
-		http.Error(w, err.Error(), 1002)
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
 		return
 	}
 
@@ -601,6 +609,8 @@ func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Requ
 	days := queryParams.Get("days")
 	lookBackDays := queryParams.Get("lookBackDays")
 	price := queryParams.Get("price")
+	trend := queryParams.Get("trend")
+
 	if industry == "" || days == "" || lookBackDays == "" {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,
@@ -614,7 +624,11 @@ func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Requ
 		price = "0.1"
 	}
 
-	data, err := sh.svc.GetGoodStocks(industry, days, lookBackDays, price)
+	if trend == "" {
+		trend = "2"
+	}
+
+	data, err := sh.svc.GetGoodStocks(industry, days, lookBackDays, price, trend)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,

@@ -40,6 +40,7 @@ const (
 	shIndexKey                   = "sh_index_rt"
 	capitalInFlowKey             = "capital_inflow"
 	stockRealTimeDataLockKey     = "lock:stock_real_time_data"
+	aiSecretKey                  = "ai_api_key"
 )
 
 type StockRepo struct {
@@ -611,11 +612,11 @@ func (sr *StockRepo) GetStockRtData(code string) (*domain.StockInfo, error) {
 	return data, nil
 }
 
-func (sr *StockRepo) GetGoodStocks(industry, days, lookBackDays, price string) ([]*domain.FilterGoodStock, error) {
+func (sr *StockRepo) GetGoodStocks(industry, days, lookBackDays, price, trend string) ([]*domain.FilterGoodStock, error) {
 	var data []*domain.FilterGoodStock
 
 	if days != "1000" {
-		if err := sr.runScript(filterGoodStockFile, true, industry, days, lookBackDays, price); err != nil {
+		if err := sr.runScript(filterGoodStockFile, true, industry, days, lookBackDays, price, trend); err != nil {
 			return nil, err
 		}
 		return data, nil
@@ -779,6 +780,59 @@ func (sr *StockRepo) GetCapitalInflowData(isRun bool) ([]*domain.CapitalInflow, 
 	var data []*domain.CapitalInflow
 	if err := json.Unmarshal([]byte(result), &data); err != nil {
 		return nil, err
+	}
+
+	return data, nil
+}
+
+func (sr *StockRepo) GetAiApiKey() ([]*domain.AiApiKey, error) {
+	var data []*domain.AiApiKey
+	result, err := sr.client.HKeys(aiSecretKey).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, fmt.Errorf("missing AI API configuration parameters")
+		}
+
+		return nil, fmt.Errorf("get ai api key: %w", err)
+	}
+
+	for _, v := range result {
+		var sd *domain.AiApiKey
+		if err := json.Unmarshal([]byte(v), &data); err != nil {
+			return nil, fmt.Errorf("unmarshal ai api key: %w", err)
+		}
+		data = append(data, sd)
+	}
+
+	return data, nil
+}
+
+func (sr *StockRepo) SetAiApiKey(sk map[string]interface{}) ([]*domain.AiApiKey, error) {
+	var data []*domain.AiApiKey
+	var sd *domain.AiApiKey
+
+	marshal, err := json.Marshal(&sk)
+	if err != nil {
+		return nil, fmt.Errorf("marshal ai api key: %w", err)
+	}
+
+	if err := json.Unmarshal(marshal, sd); err != nil {
+		return nil, fmt.Errorf("unmarshal ai api key: %w", err)
+	}
+
+	allData, err := sr.GetAiApiKey()
+	if err != nil {
+		return nil, fmt.Errorf("get ai api key: %w", err)
+	}
+
+	allData = append(allData, sd)
+	jsonStr, err := json.Marshal(&sd)
+	if err != nil {
+		return nil, fmt.Errorf("marshal ai api key: %w", err)
+	}
+
+	if err := sr.client.HSet(aiSecretKey, sd.Name, string(jsonStr)); err != nil {
+		return nil, fmt.Errorf("set ai api key: %s", err.Err())
 	}
 
 	return data, nil
