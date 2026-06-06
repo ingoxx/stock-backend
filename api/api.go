@@ -23,11 +23,11 @@ func Start() {
 
 	// 需要走中间件验证
 	privateMux := http.NewServeMux()
-	// gold
+	// gold变动接口
 	privateMux.HandleFunc("GET /v2/golden/list", tollbooth.LimitFuncHandler(lmt, goldenApp.GoldenHandler.GetGoldenPriceListHandler).ServeHTTP)
 	privateMux.HandleFunc("POST /v1/golden/set", tollbooth.LimitFuncHandler(lmt, goldenApp.GoldenHandler.SetGoldenPriceHandler).ServeHTTP)
 
-	// stock
+	// stock接口
 	privateMux.HandleFunc("GET /v1/stock/list", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockListHandler).ServeHTTP)
 	privateMux.HandleFunc("GET /v1/stock/days/detail", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockInfoForDataListHandler).ServeHTTP)
 	privateMux.HandleFunc("GET /v1/stock/industry/list", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockIndustryListHandler).ServeHTTP)

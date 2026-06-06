@@ -295,11 +295,11 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 
 // GetStockRealTimeData 实时获取某个行情数据
 func (sr *StockRepo) GetStockRealTimeData(code, price, hold string) ([]*domain.StockInfo, error) {
-	const maxStocks = 10
+	const maxMonitorStocks = 20
 
 	var data []*domain.StockInfo
 	err := sr.withStockRealTimeDataLock(func() error {
-		if err := sr.checkStockLimit(maxStocks); err != nil {
+		if err := sr.checkStockLimit(maxMonitorStocks); err != nil {
 			return err
 		}
 
