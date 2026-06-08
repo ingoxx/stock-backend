@@ -41,6 +41,7 @@ const (
 	capitalInFlowKey             = "capital_inflow"
 	stockRealTimeDataLockKey     = "lock:stock_real_time_data"
 	aiSecretKey                  = "ai_api_key"
+	selfSelectedStocksKey        = "self_selected_stocks"
 )
 
 type StockRepo struct {
@@ -807,6 +808,7 @@ func (sr *StockRepo) GetAiApiKey() ([]*domain.AiApiKey, error) {
 	return data, nil
 }
 
+// SetAiApiKey 设置ai的api key
 func (sr *StockRepo) SetAiApiKey(sk map[string]interface{}) ([]*domain.AiApiKey, error) {
 	var data []*domain.AiApiKey
 	var sd *domain.AiApiKey
@@ -836,6 +838,102 @@ func (sr *StockRepo) SetAiApiKey(sk map[string]interface{}) ([]*domain.AiApiKey,
 	}
 
 	return data, nil
+}
+
+// findStockByCode 自选stock的筛选
+func (sr *StockRepo) findStockByCode(code string) (*domain.StockInfo, error) {
+	stocks, err := sr.GetStockList()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range stocks {
+		if item != nil && item.Code == code {
+			return item, nil
+		}
+	}
+
+	return nil, fmt.Errorf("%s not found", code)
+}
+
+// saveSelfSelectedStock 自选stock的update,add
+func (sr *StockRepo) saveSelfSelectedStock(code string) ([]*domain.StockInfo, error) {
+	stock, err := sr.findStockByCode(code)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := json.Marshal(stock)
+	if err != nil {
+		return nil, fmt.Errorf("marshal self selected stock failed: %w", err)
+	}
+
+	if err := sr.client.HSet(selfSelectedStocksKey, code, string(b)).Err(); err != nil {
+		return nil, err
+	}
+
+	return sr.GetSelfSelectedStockList()
+}
+
+func (sr *StockRepo) AddSelfSelectedStock(code string) ([]*domain.StockInfo, error) {
+	return sr.saveSelfSelectedStock(code)
+}
+
+func (sr *StockRepo) UpdateSelfSelectedStock(code string) ([]*domain.StockInfo, error) {
+	return sr.saveSelfSelectedStock(code)
+}
+
+// GetSelfSelectedStock 暂时用不到
+func (sr *StockRepo) GetSelfSelectedStock(code string) (*domain.StockInfo, error) {
+	result, err := sr.client.HGet(selfSelectedStocksKey, code).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, fmt.Errorf("%s not found", code)
+		}
+		return nil, err
+	}
+
+	if result == "" {
+		return nil, fmt.Errorf("%s not found", code)
+	}
+
+	var data domain.StockInfo
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return nil, err
+	}
+
+	return &data, nil
+}
+
+func (sr *StockRepo) GetSelfSelectedStockList() ([]*domain.StockInfo, error) {
+	result, err := sr.client.HGetAll(selfSelectedStocksKey).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]*domain.StockInfo, 0, len(result))
+	for _, raw := range result {
+		var info domain.StockInfo
+		if err := json.Unmarshal([]byte(raw), &info); err != nil {
+			return nil, err
+		}
+		data = append(data, &info)
+	}
+
+	return data, nil
+}
+
+// SelfSelectedStockDel 自选stock的del
+func (sr *StockRepo) SelfSelectedStockDel(code string) error {
+	if err := sr.client.HDel(selfSelectedStocksKey, code).Err(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (sr *StockRepo) runScript(fileName string, async bool, args ...interface{}) error {

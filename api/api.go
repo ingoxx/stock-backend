@@ -50,6 +50,12 @@ func Start() {
 	privateMux.HandleFunc("POST /v1/stock/notice/switch", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.StockNoticeSwitchHandler).ServeHTTP)
 	privateMux.HandleFunc("GET /v1/stock/filter/good", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetGoodStocksHandler).ServeHTTP)
 	privateMux.HandleFunc("GET /v1/stock/filter/good/history", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.FilterGoodStocksHistoryHandler).ServeHTTP)
+	// 自选stock list
+	privateMux.HandleFunc("GET /v1/stock/self-selected/list", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetSelfSelectedStockListHandler).ServeHTTP)
+	// add 自选stock
+	privateMux.HandleFunc("POST /v1/stock/self-selected/add", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.AddSelfSelectedStockHandler).ServeHTTP)
+	// del 自选stock
+	privateMux.HandleFunc("POST /v2/stock/self-selected/del", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.SelfSelectedStockDelHandler).ServeHTTP)
 
 	// 获取上证指数
 	privateMux.HandleFunc("GET /v1/stock/sh-index", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetShIndexRealTimeDataHandler).ServeHTTP)

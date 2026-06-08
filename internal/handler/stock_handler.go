@@ -532,9 +532,18 @@ func (sh *StockHandler) StockRealTimeInfoSwitchHandler(w http.ResponseWriter, r 
 		return
 	}
 
+	var msg string
+	if req.Status == 1 {
+		msg = "实时刷新已关闭"
+	} else if req.Status == 2 {
+		msg = "实时刷新已开启"
+	} else {
+		msg = "ok"
+	}
+
 	utils.ResponseJSON(w, StockResponse{
 		Code: 1000,
-		Msg:  "ok",
+		Msg:  msg,
 		Data: data,
 	})
 }
@@ -814,5 +823,94 @@ func (sh *StockHandler) GetCapitalInflowDataHandler(w http.ResponseWriter, r *ht
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
+	})
+}
+
+func (sh *StockHandler) GetSelfSelectedStockListHandler(w http.ResponseWriter, r *http.Request) {
+	data, err := sh.svc.GetSelfSelectedStockList()
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) AddSelfSelectedStockHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	req, err := bindAndValidate[GeneralStockReq](body, sh.vd, func(r *GeneralStockReq) {
+		r.Code = strings.TrimSpace(r.Code)
+	})
+	if err != nil {
+		writeReqError(w, err)
+		return
+	}
+
+	data, err := sh.svc.AddSelfSelectedStock(req.Code)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) SelfSelectedStockDelHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	req, err := bindAndValidate[GeneralStockReq](body, sh.vd, func(r *GeneralStockReq) {
+		r.Code = strings.TrimSpace(r.Code)
+	})
+	if err != nil {
+		writeReqError(w, err)
+		return
+	}
+
+	if err := sh.svc.SelfSelectedStockDel(req.Code); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: "",
 	})
 }

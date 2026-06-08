@@ -121,3 +121,19 @@ func (ss *StockService) GetShIndexRealTimeData(isRun bool) (*domain.ShIndex, err
 func (ss *StockService) GetCapitalInflowData(isRun bool) ([]*domain.CapitalInflow, error) {
 	return ss.repo.GetCapitalInflowData(isRun)
 }
+
+func (ss *StockService) AddSelfSelectedStock(code string) ([]*domain.StockInfo, error) {
+	return ss.repo.AddSelfSelectedStock(code)
+}
+
+func (ss *StockService) GetSelfSelectedStockList() ([]*domain.StockInfo, error) {
+	return ss.repo.GetSelfSelectedStockList()
+}
+
+func (ss *StockService) UpdateSelfSelectedStock(code string) ([]*domain.StockInfo, error) {
+	return ss.repo.UpdateSelfSelectedStock(code)
+}
+
+func (ss *StockService) SelfSelectedStockDel(code string) error {
+	return ss.repo.SelfSelectedStockDel(code)
+}

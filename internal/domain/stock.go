@@ -156,4 +156,8 @@ type StockInfoRepository interface {
 	UpdateStockHoldings(code string, price float64, quantity int) ([]*StockInfo, error)
 	GetCapitalInflowData(isRun bool) ([]*CapitalInflow, error)
 	GetShIndexRealTimeData(isRun bool) (*ShIndex, error)
+	AddSelfSelectedStock(code string) ([]*StockInfo, error)
+	UpdateSelfSelectedStock(code string) ([]*StockInfo, error)
+	GetSelfSelectedStockList() ([]*StockInfo, error)
+	SelfSelectedStockDel(code string) error
 }
