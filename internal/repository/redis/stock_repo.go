@@ -42,6 +42,8 @@ const (
 	stockRealTimeDataLockKey     = "lock:stock_real_time_data"
 	aiSecretKey                  = "ai_api_key"
 	selfSelectedStocksKey        = "self_selected_stocks"
+	// 模拟的持仓数量最多20个，具体要看服务器配置
+	maxMonitorStocks = 20
 )
 
 type StockRepo struct {
@@ -296,8 +298,6 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 
 // GetStockRealTimeData 实时获取某个行情数据
 func (sr *StockRepo) GetStockRealTimeData(code, price, hold string) ([]*domain.StockInfo, error) {
-	const maxMonitorStocks = 20
-
 	var data []*domain.StockInfo
 	err := sr.withStockRealTimeDataLock(func() error {
 		if err := sr.checkStockLimit(maxMonitorStocks); err != nil {
