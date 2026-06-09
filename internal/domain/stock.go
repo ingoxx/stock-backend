@@ -148,7 +148,7 @@ type StockInfoRepository interface {
 	GetStockRtData(code string) (*StockInfo, error)
 	StockNoticeSwitch(status int) (int, error)
 	GetGoodStocks(industry, days, lookBackDays, price, trend string) ([]*FilterGoodStock, error)
-	FilterGoodStocksHistory() ([]string, error)
+	FilterGoodStocksHistory(trend string) ([]string, error)
 	StockNoticeFsSet(webHook, word string) error
 	CheckStockNoticeFsSetStatus() bool
 	SendFsInfo() error

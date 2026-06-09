@@ -655,7 +655,13 @@ func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (sh *StockHandler) FilterGoodStocksHistoryHandler(w http.ResponseWriter, r *http.Request) {
-	data, err := sh.svc.FilterGoodStocksHistory()
+	queryParams := r.URL.Query()
+	trend := queryParams.Get("trend")
+	if trend == "" {
+		trend = "2"
+	}
+
+	data, err := sh.svc.FilterGoodStocksHistory(trend)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,

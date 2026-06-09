@@ -49,6 +49,7 @@ func Start() {
 	privateMux.HandleFunc("GET /v2/stock/real-time/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockRtDataHandler).ServeHTTP)
 	privateMux.HandleFunc("POST /v1/stock/notice/switch", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.StockNoticeSwitchHandler).ServeHTTP)
 	privateMux.HandleFunc("GET /v1/stock/filter/good", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetGoodStocksHandler).ServeHTTP)
+	// 筛选回调会上涨所有结果
 	privateMux.HandleFunc("GET /v1/stock/filter/good/history", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.FilterGoodStocksHistoryHandler).ServeHTTP)
 	// 自选stock list
 	privateMux.HandleFunc("GET /v1/stock/self-selected/list", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetSelfSelectedStockListHandler).ServeHTTP)

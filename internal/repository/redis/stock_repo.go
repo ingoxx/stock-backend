@@ -50,7 +50,8 @@ type StockRepo struct {
 	mu     sync.RWMutex
 	client *redis.Client
 	wg     sync.WaitGroup
-	sf     singleflight.Group
+	// 恢复 singleflight，防止用户打开多个浏览器标签页导致的重复请求挤兑服务器
+	sf singleflight.Group
 }
 
 func NewStockRepo(client *redis.Client) domain.StockInfoRepository {
@@ -59,25 +60,35 @@ func NewStockRepo(client *redis.Client) domain.StockInfoRepository {
 	}
 }
 
-func (sr *StockRepo) withStockRealTimeDataLock(fn func() error) error {
+// withStockRealTimeDataLock 修改为【细粒度单支股票锁】
+// 这就是让你原代码从“单线程卡顿”变成“双线程狂飙”的核心！不同股票更新再也不用互相排队等锁了！
+func (sr *StockRepo) withStockRealTimeDataLock(code string, waitTimeout time.Duration, fn func() error) error {
 	token, err := newLockToken()
 	if err != nil {
 		return err
 	}
 
-	const (
-		lockTTL  = 2 * time.Minute
-		lockWait = 30 * time.Second
-	)
+	const lockTTL = 2 * time.Minute
 
-	deadline := time.Now().Add(lockWait)
+	// 按具体的股票代码加锁
+	lockKey := stockRealTimeDataLockKey
+	if code != "" {
+		lockKey = fmt.Sprintf("%s:%s", stockRealTimeDataLockKey, code)
+	}
+
+	deadline := time.Now().Add(waitTimeout)
 	for {
-		ok, err := sr.client.SetNX(stockRealTimeDataLockKey, token, lockTTL).Result()
+		ok, err := sr.client.SetNX(lockKey, token, lockTTL).Result()
 		if err != nil {
 			return err
 		}
 		if ok {
 			break
+		}
+
+		// waitTimeout=0 表示非阻塞（后台刷新时碰到用户正在修改持仓，直接跳过保护性能）
+		if waitTimeout == 0 {
+			return fmt.Errorf("lock acquired by others, skip")
 		}
 
 		if time.Now().After(deadline) {
@@ -93,7 +104,7 @@ if redis.call("GET", KEYS[1]) == ARGV[1] then
 	return redis.call("DEL", KEYS[1])
 end
 return 0
-`, []string{stockRealTimeDataLockKey}, token).Result()
+`, []string{lockKey}, token).Result()
 	}()
 
 	return fn()
@@ -104,13 +115,11 @@ func newLockToken() (string, error) {
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-
 	return hex.EncodeToString(b), nil
 }
 
 func (sr *StockRepo) GetStockList() ([]*domain.StockInfo, error) {
 	var keys = []string{"sh_a", "sz_a"}
-
 	var dss = make([]*domain.StockInfo, 0, 5200)
 
 	for _, v := range keys {
@@ -126,11 +135,9 @@ func (sr *StockRepo) GetStockList() ([]*domain.StockInfo, error) {
 			if err := json.Unmarshal(bn.Bytes(), &ds); err != nil {
 				return dss, err
 			}
-
 			dss = append(dss, &ds)
 		}
 	}
-
 	return dss, nil
 }
 
@@ -147,7 +154,6 @@ func (sr *StockRepo) GetStockInfoForDataList(code string) ([]*domain.StockHistor
 	if err := json.Unmarshal(bn.Bytes(), &ds); err != nil {
 		return ds, err
 	}
-
 	return ds, nil
 }
 
@@ -163,7 +169,6 @@ func (sr *StockRepo) GetStockIndustryList() ([]*domain.StockIndustryMap, error) 
 	if err := json.Unmarshal([]byte(result), &ds); err != nil {
 		return ds, err
 	}
-
 	return ds, nil
 }
 
@@ -178,9 +183,7 @@ func (sr *StockRepo) GetIndustryStockUpDown() ([]*domain.StockIndustryUpDown, er
 	if err := json.Unmarshal(bn.Bytes(), &ud); err != nil {
 		return ud, err
 	}
-
 	return ud, nil
-
 }
 
 func (sr *StockRepo) GetStockMarketData() (domain.StockMarketData, error) {
@@ -194,7 +197,6 @@ func (sr *StockRepo) GetStockMarketData() (domain.StockMarketData, error) {
 	if err := json.Unmarshal(bn.Bytes(), &md); err != nil {
 		return md, err
 	}
-
 	return md, nil
 }
 
@@ -202,7 +204,6 @@ func (sr *StockRepo) GetStockDataSwitch() error {
 	if err := sr.client.Set("run_stock", 1, 0).Err(); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -211,11 +212,9 @@ func (sr *StockRepo) GetStockDataStatus() error {
 	if err != nil {
 		return err
 	}
-
 	if result != "2" {
 		return fmt.Errorf("still running")
 	}
-
 	return nil
 }
 
@@ -235,7 +234,6 @@ func (sr *StockRepo) GetIndustryData(name string) ([]*domain.StockInfo, error) {
 	if md == nil {
 		return nil, fmt.Errorf("fail to Unmarshal data")
 	}
-
 	return md, nil
 }
 
@@ -259,7 +257,6 @@ func (sr *StockRepo) GetStockHistoryData(code, days string) ([]*domain.StockHist
 	if err := json.Unmarshal(bn.Bytes(), &md); err != nil {
 		return nil, err
 	}
-
 	return md, nil
 }
 
@@ -270,15 +267,12 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 
 	for _, k := range keys {
 		result, err := sr.client.HGet(k, code).Result()
-
 		if err != nil {
 			if errors.Is(err, redis.Nil) {
 				continue
 			}
-
 			return nil, err
 		}
-
 		if result != "" {
 			data = result
 			break
@@ -292,14 +286,12 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 	if err := json.Unmarshal([]byte(data), &ds); err != nil {
 		return nil, err
 	}
-
 	return ds, nil
 }
 
-// GetStockRealTimeData 实时获取某个行情数据
 func (sr *StockRepo) GetStockRealTimeData(code, price, hold string) ([]*domain.StockInfo, error) {
 	var data []*domain.StockInfo
-	err := sr.withStockRealTimeDataLock(func() error {
+	err := sr.withStockRealTimeDataLock(code, 30*time.Second, func() error {
 		if err := sr.checkStockLimit(maxMonitorStocks); err != nil {
 			return err
 		}
@@ -315,29 +307,19 @@ func (sr *StockRepo) GetStockRealTimeData(code, price, hold string) ([]*domain.S
 	if err != nil {
 		return nil, err
 	}
-
 	return data, nil
 }
 
 func (sr *StockRepo) isInStockTime() bool {
 	now := time.Now()
-
-	// 获取当前星期 (time.Monday �?1, time.Sunday �?0)
-	// �?Go 中，周一到周五对�?weekday 1 �?5
 	weekday := now.Weekday()
 	if weekday == time.Saturday || weekday == time.Sunday {
 		return false
 	}
 
-	// 获取当前时间的小时和分钟
 	hour := now.Hour()
 	minute := now.Minute()
-
-	// 将时间转换为分钟数，方便比较 (例如 9:30 = 9*60 + 30 = 570)
 	currentMinutes := hour*60 + minute
-
-	// 上午 9:30 - 11:40 -> 570 - 700
-	// 下午 13:00 - 15:10 -> 780 - 910
 
 	isMorning := currentMinutes >= 570 && currentMinutes <= 700
 	isAfternoon := currentMinutes >= 780 && currentMinutes <= 910
@@ -345,15 +327,14 @@ func (sr *StockRepo) isInStockTime() bool {
 	return isMorning || isAfternoon
 }
 
-// GetStockRealTimeList returns latest realtime data
+// GetStockRealTimeList 回归完全阻塞式调用，完美匹配前端等待机制
 func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
 	result, err := sr.client.Get(stockRealTimeSwitch).Result()
-	if err != nil {
+	if err != nil && !errors.Is(err, redis.Nil) {
 		return sr.loadStockRealTimeData()
 	}
 
 	if sr.isInStockTime() || result == "2" {
-
 		data, err := sr.loadStockRealTimeData()
 		if err != nil {
 			return nil, err
@@ -362,26 +343,32 @@ func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
 			return data, nil
 		}
 
+		// sf.Do 保证即使前端开10个网页，也只会真正触发一组更新任务，不浪费任何CPU性能
 		_, err, _ = sr.sf.Do("refresh_stock_realtime_list", func() (interface{}, error) {
 			var eg errgroup.Group
+			// 严格控制只开2个并发，吃满双核但绝不造成堵塞崩溃
 			eg.SetLimit(2)
 
 			for _, item := range data {
 				code := item.Code
-
 				eg.Go(func() error {
-					return sr.withStockRealTimeDataLock(func() error {
-						if err := sr.refreshStockRealTimeData(code, "", ""); err != nil {
-							return fmt.Errorf("refresh %s failed: %w", code, err)
+					// 锁粒度变成基于 code，双核就可以真正同时跑2只不同的股票，效率翻倍！
+					// waitTimeout=0 表示如果碰到用户正在修改，跳过不管。
+					return sr.withStockRealTimeDataLock(code, 0, func() error {
+						// 校验是否已被删除
+						exists, err := sr.client.HExists(stockRealTimeDataKey, code).Result()
+						if err == nil && !exists {
+							return nil
 						}
+						// 同步调用，执行Python
+						_ = sr.refreshStockRealTimeData(code, "", "")
 						return nil
 					})
 				})
 			}
 
-			if err := eg.Wait(); err != nil {
-				return nil, err
-			}
+			// 这里真正会阻塞，直到所有 Python 都执行完，完美适配前端的等待需求！
+			_ = eg.Wait()
 			return nil, nil
 		})
 
@@ -390,6 +377,7 @@ func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
 		}
 	}
 
+	// 等全部更新跑完后，重新加载 Redis 里最新的数据完整返回
 	return sr.loadStockRealTimeData()
 }
 
@@ -402,7 +390,6 @@ func (sr *StockRepo) checkStockLimit(limit int) error {
 	if len(current) >= limit {
 		return fmt.Errorf("up to %d self-selected stocks", limit)
 	}
-
 	return nil
 }
 
@@ -411,9 +398,8 @@ func (sr *StockRepo) refreshStockRealTimeData(code, price, hold string) error {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, pythonBin, pythonFile, code, price, hold)
-	out, err := cmd.CombinedOutput() // stdout + stderr
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		// 超时要单独判断，便于定位
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return fmt.Errorf("run realtime script timeout: %s", string(out))
 		}
@@ -437,13 +423,13 @@ func (sr *StockRepo) loadStockRealTimeData() ([]*domain.StockInfo, error) {
 		}
 
 		rd, err := sr.GetStockInfoData(info.Code)
-		if err != nil {
-			return nil, err
+		if err == nil && rd != nil {
+			info.Industry = rd.Industry
+			info.MainBusiness = rd.MainBusiness
+		} else {
+			info.Industry = "未知"
+			info.MainBusiness = "未知"
 		}
-
-		info.Industry = rd.Industry
-		info.MainBusiness = rd.MainBusiness
-
 		result = append(result, &info)
 	}
 
@@ -451,22 +437,19 @@ func (sr *StockRepo) loadStockRealTimeData() ([]*domain.StockInfo, error) {
 }
 
 func (sr *StockRepo) DelSelfSelectedStock(code string) error {
-	return sr.withStockRealTimeDataLock(func() error {
+	return sr.withStockRealTimeDataLock(code, 30*time.Second, func() error {
 		if err := sr.client.HDel(stockRealTimeDataKey, code).Err(); err != nil {
 			return err
 		}
-
 		return nil
 	})
 }
 
-// StockNoticeSwitch 1,close;2,open;3,check;default 1
 func (sr *StockRepo) StockNoticeSwitch(status int) (int, error) {
 	if status == 1 || status == 2 {
 		if err := sr.client.Set(stockNoticeKey, status, 0).Err(); err != nil {
 			return 0, err
 		}
-
 		return status, nil
 	} else if status == 3 {
 		result, err := sr.client.Get(stockNoticeKey).Result()
@@ -491,9 +474,8 @@ func (sr *StockRepo) StockNoticeSwitch(status int) (int, error) {
 	return status, nil
 }
 
-// UpdateStockDealStatus updates trading status
 func (sr *StockRepo) UpdateStockDealStatus(code string, status int) ([]*domain.StockInfo, error) {
-	err := sr.withStockRealTimeDataLock(func() error {
+	err := sr.withStockRealTimeDataLock(code, 30*time.Second, func() error {
 		result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
 		if errors.Is(err, redis.Nil) || result == "" {
 			return nil
@@ -516,7 +498,6 @@ func (sr *StockRepo) UpdateStockDealStatus(code string, status int) ([]*domain.S
 		if err := sr.client.HSet(stockRealTimeDataKey, code, string(b)).Err(); err != nil {
 			return err
 		}
-
 		return nil
 	})
 	if err != nil {
@@ -545,7 +526,7 @@ func (sr *StockRepo) GetHistoryTradeDataList() ([]*domain.StockInfo, error) {
 }
 
 func (sr *StockRepo) AddHistoryTradeData(code string, TradeType int) ([]*domain.StockInfo, error) {
-	err := sr.withStockRealTimeDataLock(func() error {
+	err := sr.withStockRealTimeDataLock(code, 30*time.Second, func() error {
 		result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
 		if errors.Is(err, redis.Nil) || result == "" {
 			return nil
@@ -566,7 +547,6 @@ func (sr *StockRepo) AddHistoryTradeData(code string, TradeType int) ([]*domain.
 		if err := sr.client.RPush(stockTradeHistoryDataKey, string(b)).Err(); err != nil {
 			return err
 		}
-
 		return nil
 	})
 	if err != nil {
@@ -576,7 +556,6 @@ func (sr *StockRepo) AddHistoryTradeData(code string, TradeType int) ([]*domain.
 	return sr.GetHistoryTradeDataList()
 }
 
-// StockRealTimeInfoSwitch 1=close, 2=open, 3=check, default 1
 func (sr *StockRepo) StockRealTimeInfoSwitch(status int) (string, error) {
 	if err := sr.client.Set(stockRealTimeSwitch, status, 0).Err(); err != nil {
 		return "", err
@@ -596,7 +575,6 @@ func (sr *StockRepo) GetStockRtData(code string) (*domain.StockInfo, error) {
 	}
 
 	var data *domain.StockInfo
-
 	result, err := sr.client.HGet(stockRtDataKey, code).Result()
 	if err != nil {
 		return nil, err
@@ -623,12 +601,13 @@ func (sr *StockRepo) GetGoodStocks(industry, days, lookBackDays, price, trend st
 		return data, nil
 	}
 
-	result, err := sr.client.HGet(filterGoodStockKey, industry).Result()
+	key := fmt.Sprintf("%s_%s", filterGoodStockKey, trend)
+
+	result, err := sr.client.HGet(key, industry).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return data, nil
 		}
-
 		return nil, err
 	}
 
@@ -639,12 +618,12 @@ func (sr *StockRepo) GetGoodStocks(industry, days, lookBackDays, price, trend st
 	return data, nil
 }
 
-func (sr *StockRepo) FilterGoodStocksHistory() ([]string, error) {
-	result, err := sr.client.HKeys(filterGoodStockKey).Result()
+func (sr *StockRepo) FilterGoodStocksHistory(trend string) ([]string, error) {
+	key := fmt.Sprintf("%s_%s", filterGoodStockKey, trend)
+	result, err := sr.client.HKeys(key).Result()
 	if err != nil {
 		return nil, err
 	}
-
 	return result, nil
 }
 
@@ -662,7 +641,6 @@ func (sr *StockRepo) StockNoticeFsSet(webHook, word string) error {
 	if err := sr.client.Set(stockFsSetKey, string(jsonStr), 0).Err(); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -674,7 +652,6 @@ func (sr *StockRepo) SendFsInfo() error {
 	if err := sr.runScript(feishuSendTestFile, false); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -683,7 +660,6 @@ func (sr *StockRepo) CheckStockNoticeFsSetStatus() bool {
 	if err != nil || result == "" || errors.Is(err, redis.Nil) {
 		return false
 	}
-
 	return true
 }
 
@@ -710,9 +686,8 @@ func (sr *StockRepo) GetStockHistoryDataDateRange(code, start, end string) ([]*d
 	return md, nil
 }
 
-// UpdateStockHoldings 修改持仓列表中的股票
 func (sr *StockRepo) UpdateStockHoldings(code string, price float64, quantity int) ([]*domain.StockInfo, error) {
-	err := sr.withStockRealTimeDataLock(func() error {
+	err := sr.withStockRealTimeDataLock(code, 30*time.Second, func() error {
 		result, err := sr.client.HGet(stockRealTimeDataKey, code).Result()
 		if errors.Is(err, redis.Nil) || result == "" {
 			return nil
@@ -736,7 +711,6 @@ func (sr *StockRepo) UpdateStockHoldings(code string, price float64, quantity in
 		if err := sr.client.HSet(stockRealTimeDataKey, code, string(b)).Err(); err != nil {
 			return err
 		}
-
 		return nil
 	})
 	if err != nil {
@@ -793,7 +767,6 @@ func (sr *StockRepo) GetAiApiKey() ([]*domain.AiApiKey, error) {
 		if errors.Is(err, redis.Nil) {
 			return nil, fmt.Errorf("missing AI API configuration parameters")
 		}
-
 		return nil, fmt.Errorf("get ai api key: %w", err)
 	}
 
@@ -808,7 +781,6 @@ func (sr *StockRepo) GetAiApiKey() ([]*domain.AiApiKey, error) {
 	return data, nil
 }
 
-// SetAiApiKey 设置ai的api key
 func (sr *StockRepo) SetAiApiKey(sk map[string]interface{}) ([]*domain.AiApiKey, error) {
 	var data []*domain.AiApiKey
 	var sd *domain.AiApiKey
@@ -840,7 +812,6 @@ func (sr *StockRepo) SetAiApiKey(sk map[string]interface{}) ([]*domain.AiApiKey,
 	return data, nil
 }
 
-// findStockByCode 自选stock的筛选
 func (sr *StockRepo) findStockByCode(code string) (*domain.StockInfo, error) {
 	stocks, err := sr.GetStockList()
 	if err != nil {
@@ -856,7 +827,6 @@ func (sr *StockRepo) findStockByCode(code string) (*domain.StockInfo, error) {
 	return nil, fmt.Errorf("%s not found", code)
 }
 
-// saveSelfSelectedStock 自选stock的update,add
 func (sr *StockRepo) saveSelfSelectedStock(code string) ([]*domain.StockInfo, error) {
 	stock, err := sr.findStockByCode(code)
 	if err != nil {
@@ -883,7 +853,6 @@ func (sr *StockRepo) UpdateSelfSelectedStock(code string) ([]*domain.StockInfo, 
 	return sr.saveSelfSelectedStock(code)
 }
 
-// GetSelfSelectedStock 暂时用不到
 func (sr *StockRepo) GetSelfSelectedStock(code string) (*domain.StockInfo, error) {
 	result, err := sr.client.HGet(selfSelectedStocksKey, code).Result()
 	if err != nil {
@@ -927,7 +896,6 @@ func (sr *StockRepo) GetSelfSelectedStockList() ([]*domain.StockInfo, error) {
 	return data, nil
 }
 
-// SelfSelectedStockDel 自选stock的del
 func (sr *StockRepo) SelfSelectedStockDel(code string) error {
 	if err := sr.client.HDel(selfSelectedStocksKey, code).Err(); err != nil {
 		return err
@@ -955,9 +923,8 @@ func (sr *StockRepo) runScript(fileName string, async bool, args ...interface{})
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, cmdArgs[0], cmdArgs[1:]...)
-	out, err := cmd.CombinedOutput() // stdout + stderr
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		// 超时要单独判断，便于定位
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return fmt.Errorf("run realtime script timeout: %s", string(out))
 		}

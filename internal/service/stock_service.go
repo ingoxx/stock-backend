@@ -90,8 +90,8 @@ func (ss *StockService) GetGoodStocks(industry, days, lookBackDays, price, trend
 	return ss.repo.GetGoodStocks(industry, days, lookBackDays, price, trend)
 }
 
-func (ss *StockService) FilterGoodStocksHistory() ([]string, error) {
-	return ss.repo.FilterGoodStocksHistory()
+func (ss *StockService) FilterGoodStocksHistory(trend string) ([]string, error) {
+	return ss.repo.FilterGoodStocksHistory(trend)
 }
 
 func (ss *StockService) StockNoticeFsSet(webHook, word string) error {
