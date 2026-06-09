@@ -70,6 +70,13 @@ func Start() {
 	privateMux.HandleFunc("POST /v1/stock/send-msg-test", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.SendFsInfoHandler).ServeHTTP)
 	// 按指定日期查询历史行情数据
 	privateMux.HandleFunc("GET /v1/stock/history/date-range", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockHistoryDataDateRangeHandler).ServeHTTP)
+
+	// 设置apikey
+	privateMux.HandleFunc("POST /v1/stock/set-ai-config", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.SetAiApiKeyHandler).ServeHTTP)
+
+	// 获取所有apikey
+	privateMux.HandleFunc("GET /v1/stock/get-ai-config", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetAiApiKeyHandler).ServeHTTP)
+
 	authMux := middleware.AuthMiddleware(privateMux, rdbConn)
 
 	// 本地测试允许跨域

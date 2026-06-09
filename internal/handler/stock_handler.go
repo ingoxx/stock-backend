@@ -920,3 +920,57 @@ func (sh *StockHandler) SelfSelectedStockDelHandler(w http.ResponseWriter, r *ht
 		Data: "",
 	})
 }
+
+func (sh *StockHandler) SetAiApiKeyHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	req, err := bindAndValidate[domain.AiApiKey](body, sh.vd, func(r *domain.AiApiKey) {
+	})
+	if err != nil {
+		writeReqError(w, err)
+		return
+	}
+
+	data, err := sh.svc.SetAiApiKey(req)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) GetAiApiKeyHandler(w http.ResponseWriter, r *http.Request) {
+	data, err := sh.svc.GetAiApiKey()
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}

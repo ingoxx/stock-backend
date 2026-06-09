@@ -781,35 +781,17 @@ func (sr *StockRepo) GetAiApiKey() ([]*domain.AiApiKey, error) {
 	return data, nil
 }
 
-func (sr *StockRepo) SetAiApiKey(sk map[string]interface{}) ([]*domain.AiApiKey, error) {
-	var data []*domain.AiApiKey
-	var sd *domain.AiApiKey
-
-	marshal, err := json.Marshal(&sk)
+func (sr *StockRepo) SetAiApiKey(sk domain.AiApiKey) ([]*domain.AiApiKey, error) {
+	b, err := json.Marshal(&sk)
 	if err != nil {
 		return nil, fmt.Errorf("marshal ai api key: %w", err)
 	}
 
-	if err := json.Unmarshal(marshal, sd); err != nil {
-		return nil, fmt.Errorf("unmarshal ai api key: %w", err)
-	}
-
-	allData, err := sr.GetAiApiKey()
-	if err != nil {
-		return nil, fmt.Errorf("get ai api key: %w", err)
-	}
-
-	allData = append(allData, sd)
-	jsonStr, err := json.Marshal(&sd)
-	if err != nil {
-		return nil, fmt.Errorf("marshal ai api key: %w", err)
-	}
-
-	if err := sr.client.HSet(aiSecretKey, sd.Name, string(jsonStr)); err != nil {
+	if err := sr.client.HSet(aiSecretKey, sk.Preset, string(b)); err != nil {
 		return nil, fmt.Errorf("set ai api key: %s", err.Err())
 	}
 
-	return data, nil
+	return sr.GetAiApiKey()
 }
 
 func (sr *StockRepo) findStockByCode(code string) (*domain.StockInfo, error) {

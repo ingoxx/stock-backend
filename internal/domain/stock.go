@@ -121,10 +121,11 @@ type ShIndex struct {
 }
 
 type AiApiKey struct {
-	Name   string   `json:"name"`
-	Url    string   `json:"url"`
-	Secret string   `json:"secret"`
-	Models []string `json:"models"`
+	Mode   string `json:"mode"`
+	Preset string `json:"preset"`
+	ApiKey string `json:"apiKey"`
+	ApiUrl string `json:"apiUrl"`
+	Model  string `json:"model"`
 }
 
 type StockInfoRepository interface {
@@ -160,4 +161,6 @@ type StockInfoRepository interface {
 	UpdateSelfSelectedStock(code string) ([]*StockInfo, error)
 	GetSelfSelectedStockList() ([]*StockInfo, error)
 	SelfSelectedStockDel(code string) error
+	SetAiApiKey(sk AiApiKey) ([]*AiApiKey, error)
+	GetAiApiKey() ([]*AiApiKey, error)
 }

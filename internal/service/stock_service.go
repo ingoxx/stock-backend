@@ -137,3 +137,11 @@ func (ss *StockService) UpdateSelfSelectedStock(code string) ([]*domain.StockInf
 func (ss *StockService) SelfSelectedStockDel(code string) error {
 	return ss.repo.SelfSelectedStockDel(code)
 }
+
+func (ss *StockService) GetAiApiKey() ([]*domain.AiApiKey, error) {
+	return ss.repo.GetAiApiKey()
+}
+
+func (ss *StockService) SetAiApiKey(sk domain.AiApiKey) ([]*domain.AiApiKey, error) {
+	return ss.repo.SetAiApiKey(sk)
+}
