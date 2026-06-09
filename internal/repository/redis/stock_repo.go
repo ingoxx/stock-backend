@@ -498,6 +498,7 @@ func (sr *StockRepo) UpdateStockDealStatus(code string, status int) ([]*domain.S
 		if err := sr.client.HSet(stockRealTimeDataKey, code, string(b)).Err(); err != nil {
 			return err
 		}
+
 		return nil
 	})
 	if err != nil {
@@ -762,19 +763,30 @@ func (sr *StockRepo) GetCapitalInflowData(isRun bool) ([]*domain.CapitalInflow, 
 
 func (sr *StockRepo) GetAiApiKey() ([]*domain.AiApiKey, error) {
 	var data []*domain.AiApiKey
-	result, err := sr.client.HKeys(aiSecretKey).Result()
+
+	// 1. 使用 HVals 直接获取所有的 JSON 字符串值
+	result, err := sr.client.HVals(aiSecretKey).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return nil, fmt.Errorf("missing AI API configuration parameters")
-		}
+		// 注意：Redis 的 HVALS/HKEYS 命令在 Key 不存在时会返回空数组和 nil error，不会触发 redis.Nil。
+		// 如果您想在没有配置时报错，可以在下方判断 len(result) == 0。
 		return nil, fmt.Errorf("get ai api key: %w", err)
 	}
 
+	// 2. 如果没有任何配置参数，主动返回错误
+	if len(result) == 0 {
+		return nil, fmt.Errorf("missing AI API configuration parameters")
+	}
+
 	for _, v := range result {
-		var sd *domain.AiApiKey
-		if err := json.Unmarshal([]byte(v), &data); err != nil {
+		// 3. 实例化单条数据的指针
+		sd := new(domain.AiApiKey)
+
+		// 4. 将具体的 JSON 值 v 反序列化到单条对象 sd 中
+		if err := json.Unmarshal([]byte(v), sd); err != nil {
 			return nil, fmt.Errorf("unmarshal ai api key: %w", err)
 		}
+
+		// 5. 追加到结果切片中
 		data = append(data, sd)
 	}
 
@@ -782,13 +794,13 @@ func (sr *StockRepo) GetAiApiKey() ([]*domain.AiApiKey, error) {
 }
 
 func (sr *StockRepo) SetAiApiKey(sk domain.AiApiKey) ([]*domain.AiApiKey, error) {
-	b, err := json.Marshal(&sk)
+	b, err := json.Marshal(sk)
 	if err != nil {
 		return nil, fmt.Errorf("marshal ai api key: %w", err)
 	}
 
-	if err := sr.client.HSet(aiSecretKey, sk.Preset, string(b)); err != nil {
-		return nil, fmt.Errorf("set ai api key: %s", err.Err())
+	if err := sr.client.HSet(aiSecretKey, sk.Preset, string(b)).Err(); err != nil {
+		return nil, fmt.Errorf("set ai api key: %s", err)
 	}
 
 	return sr.GetAiApiKey()
