@@ -42,6 +42,7 @@ const (
 	stockRealTimeDataLockKey     = "lock:stock_real_time_data"
 	aiSecretKey                  = "ai_api_key"
 	selfSelectedStocksKey        = "self_selected_stocks"
+	stockAverageDownKey          = "stock_average_down"
 	// 模拟的持仓数量最多20个，具体要看服务器配置
 	maxMonitorStocks = 20
 )
@@ -896,6 +897,51 @@ func (sr *StockRepo) SelfSelectedStockDel(code string) error {
 	}
 
 	return nil
+}
+
+func (sr *StockRepo) GetAverageDownList() ([]*domain.AverageDownData, error) {
+	var data []*domain.AverageDownData
+
+	// 1. 使用 HVals 直接获取所有的 JSON 字符串值
+	result, err := sr.client.HVals(stockAverageDownKey).Result()
+	if err != nil {
+		// 注意：Redis 的 HVALS/HKEYS 命令在 Key 不存在时会返回空数组和 nil error，不会触发 redis.Nil。
+		// 如果您想在没有配置时报错，可以在下方判断 len(result) == 0。
+		return nil, err
+	}
+
+	// 2. 如果没有任何配置参数，主动返回错误
+	if len(result) == 0 {
+		return data, nil
+	}
+
+	for _, v := range result {
+		// 3. 实例化单条数据的指针
+		sd := new(domain.AverageDownData)
+
+		// 4. 将具体的 JSON 值 v 反序列化到单条对象 sd 中
+		if err := json.Unmarshal([]byte(v), sd); err != nil {
+			return nil, fmt.Errorf("unmarshal %s key: %w", stockAverageDownKey, err)
+		}
+
+		// 5. 追加到结果切片中
+		data = append(data, sd)
+	}
+
+	return data, nil
+}
+
+func (sr *StockRepo) SetAverageDownInfo(ad domain.AverageDownData) ([]*domain.AverageDownData, error) {
+	b, err := json.Marshal(ad)
+	if err != nil {
+		return nil, fmt.Errorf("marshal AverageDownData: %w", err)
+	}
+
+	if err := sr.client.HSet(stockAverageDownKey, ad.Code, string(b)).Err(); err != nil {
+		return nil, err
+	}
+
+	return sr.GetAverageDownList()
 }
 
 func (sr *StockRepo) runScript(fileName string, async bool, args ...interface{}) error {

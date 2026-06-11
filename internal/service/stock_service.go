@@ -145,3 +145,11 @@ func (ss *StockService) GetAiApiKey() ([]*domain.AiApiKey, error) {
 func (ss *StockService) SetAiApiKey(sk domain.AiApiKey) ([]*domain.AiApiKey, error) {
 	return ss.repo.SetAiApiKey(sk)
 }
+
+func (ss *StockService) GetAverageDownList() ([]*domain.AverageDownData, error) {
+	return ss.repo.GetAverageDownList()
+}
+
+func (ss *StockService) SetAverageDownInfo(ad domain.AverageDownData) ([]*domain.AverageDownData, error) {
+	return ss.repo.SetAverageDownInfo(ad)
+}

@@ -77,6 +77,9 @@ func Start() {
 	// 获取所有apikey
 	privateMux.HandleFunc("GET /v1/stock/get-ai-config", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetAiApiKeyHandler).ServeHTTP)
 
+	// 修改补仓信息
+	privateMux.HandleFunc("GET /v1/stock/average-down-update", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.SetAverageDownInfoHandler).ServeHTTP)
+
 	authMux := middleware.AuthMiddleware(privateMux, rdbConn)
 
 	// 本地测试允许跨域

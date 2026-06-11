@@ -347,7 +347,6 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 }
 
 func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *http.Request) {
-
 	data, err := sh.svc.GetStockRealTimeList()
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
@@ -368,9 +367,20 @@ func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	var md = make(map[string][]*domain.StockInfo)
+	sad, err := sh.svc.GetAverageDownList()
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1003,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	var md = make(map[string]interface{})
 	md["hd"] = hd
 	md["data"] = data
+	md["ad"] = sad
 
 	utils.ResponseJSON(w, StockResponse{
 		Code: 1000,
@@ -962,6 +972,42 @@ func (sh *StockHandler) GetAiApiKeyHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) SetAverageDownInfoHandler(w http.ResponseWriter, r *http.Request) {
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	req, err := bindAndValidate[domain.AverageDownData](body, sh.vd, func(r *domain.AverageDownData) {
+	})
+	if err != nil {
+		writeReqError(w, err)
+		return
+	}
+
+	data, err := sh.svc.SetAverageDownInfo(req)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
 			Msg:  err.Error(),
 			Data: "",
 		})

@@ -128,6 +128,12 @@ type AiApiKey struct {
 	Model  string `json:"model"`
 }
 
+type AverageDownData struct {
+	Code     string  `json:"code"  validate:"required"`
+	Price    float64 `json:"price"  validate:"required"`
+	Quantity int     `json:"quantity"  validate:"required"`
+}
+
 type StockInfoRepository interface {
 	GetStockList() ([]*StockInfo, error)
 	GetStockInfoForDataList(code string) ([]*StockHistoryDate, error)
@@ -163,4 +169,6 @@ type StockInfoRepository interface {
 	SelfSelectedStockDel(code string) error
 	SetAiApiKey(sk AiApiKey) ([]*AiApiKey, error)
 	GetAiApiKey() ([]*AiApiKey, error)
+	GetAverageDownList() ([]*AverageDownData, error)
+	SetAverageDownInfo(ad AverageDownData) ([]*AverageDownData, error)
 }
