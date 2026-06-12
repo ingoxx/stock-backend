@@ -39,7 +39,7 @@ func Start() {
 	privateMux.HandleFunc("GET /v1/stock/industry/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetIndustryDataHandler).ServeHTTP)
 	privateMux.HandleFunc("GET /v1/stock/history/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockCusDaysDataHandler).ServeHTTP)
 	privateMux.HandleFunc("GET /v1/stock/info/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockInfoDataHandler).ServeHTTP)
-	privateMux.HandleFunc("GET /v1/stock/real-time/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockRealTimeDataHandler).ServeHTTP)
+	privateMux.HandleFunc("POST /v1/stock/real-time/data", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockRealTimeDataHandler).ServeHTTP)
 	privateMux.HandleFunc("GET /v1/stock/real-time/list", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockRealTimeListHandler).ServeHTTP)
 	privateMux.HandleFunc("POST /v1/stock/self-selected-del", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.DelSelfSelectedStockHandler).ServeHTTP)
 	privateMux.HandleFunc("POST /v1/stock/trade-status/update", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.UpdateStockDealStatusHandler).ServeHTTP)

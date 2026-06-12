@@ -145,8 +145,9 @@ type StockInfoRepository interface {
 	GetIndustryData(name string) ([]*StockInfo, error)
 	GetStockHistoryData(code, days string) ([]*StockHistoryDate, error)
 	GetStockInfoData(code string) (*StockInfo, error)
-	GetStockRealTimeData(code, price, hold string) ([]*StockInfo, error)
+	GetStockRealTimeData(data AverageDownData) ([]*StockInfo, error)
 	GetStockRealTimeList() ([]*StockInfo, error)
+	GetStockRealTimeListV2() ([]*StockInfo, error)
 	DelSelfSelectedStock(code string) error
 	UpdateStockDealStatus(code string, status int) ([]*StockInfo, error)
 	AddHistoryTradeData(code string, TradeType int) ([]*StockInfo, error)

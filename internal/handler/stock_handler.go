@@ -302,20 +302,37 @@ func (sh *StockHandler) GetStockInfoDataHandler(w http.ResponseWriter, r *http.R
 
 func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *http.Request) {
 
-	queryParams := r.URL.Query()
-	code := queryParams.Get("code")
-	price := queryParams.Get("price")   // 委托价格
-	hold := queryParams.Get("quantity") // 买入数量
-	if code == "" || price == "" || hold == "" {
+	//queryParams := r.URL.Query()
+	//code := queryParams.Get("code")
+	//price := queryParams.Get("price")   // 委托价格
+	//hold := queryParams.Get("quantity") // 买入数量
+	//if code == "" || price == "" || hold == "" {
+	//	utils.ResponseJSON(w, StockResponse{
+	//		Code: 1001,
+	//		Msg:  "required parameter 'code' or 'price', 'hold' is missing or empty.",
+	//		Data: "",
+	//	})
+	//	return
+	//}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,
-			Msg:  "required parameter 'code' or 'price', 'hold' is missing or empty.",
+			Msg:  err.Error(),
 			Data: "",
 		})
 		return
 	}
 
-	data, err := sh.svc.GetStockRealTimeData(code, price, hold)
+	req, err := bindAndValidate[domain.AverageDownData](body, sh.vd, func(r *domain.AverageDownData) {
+	})
+	if err != nil {
+		writeReqError(w, err)
+		return
+	}
+
+	data, err := sh.svc.GetStockRealTimeData(req)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,
@@ -347,7 +364,7 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 }
 
 func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *http.Request) {
-	data, err := sh.svc.GetStockRealTimeList()
+	data, err := sh.svc.GetStockRealTimeListV2()
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1001,
@@ -358,6 +375,7 @@ func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *ht
 	}
 
 	hd, err := sh.svc.GetHistoryTradeDataList()
+	fmt.Println("hd >>> ", hd)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1002,

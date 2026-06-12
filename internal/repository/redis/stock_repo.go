@@ -43,6 +43,7 @@ const (
 	aiSecretKey                  = "ai_api_key"
 	selfSelectedStocksKey        = "self_selected_stocks"
 	stockAverageDownKey          = "stock_average_down"
+	stockBuyChange               = "stock_buy_change"
 	// 模拟的持仓数量最多20个，具体要看服务器配置
 	maxMonitorStocks = 20
 )
@@ -290,25 +291,60 @@ func (sr *StockRepo) GetStockInfoData(code string) (*domain.StockInfo, error) {
 	return ds, nil
 }
 
-func (sr *StockRepo) GetStockRealTimeData(code, price, hold string) ([]*domain.StockInfo, error) {
-	var data []*domain.StockInfo
-	err := sr.withStockRealTimeDataLock(code, 30*time.Second, func() error {
-		if err := sr.checkStockLimit(maxMonitorStocks); err != nil {
-			return err
-		}
+func (sr *StockRepo) GetStockRealTimeData(data domain.AverageDownData) ([]*domain.StockInfo, error) {
+	if err := sr.checkStockLimit(maxMonitorStocks); err != nil {
+		return nil, err
+	}
 
-		if err := sr.refreshStockRealTimeData(code, price, hold); err != nil {
-			return err
-		}
+	return sr.getStockRealTimeDataV2(data)
+}
 
-		var err error
-		data, err = sr.loadStockRealTimeData()
-		return err
-	})
+func (sr *StockRepo) getStockRealTimeDataV2(data domain.AverageDownData) ([]*domain.StockInfo, error) {
+	b, err := json.Marshal(&data)
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+
+	dl, err := sr.loadStockRealTimeData()
+	if err != nil {
+		return nil, err
+	}
+
+	var isExist bool
+	var cd = new(domain.StockInfo)
+
+	for _, v := range dl {
+		if v.Code == data.Code {
+			isExist = true
+			cd = v
+		}
+	}
+
+	if !isExist {
+		if err := sr.client.HSet(stockBuyChange, data.Code, string(b)).Err(); err != nil {
+			return nil, err
+		}
+	}
+
+	// 已经是持仓状态的才支持补仓
+	if cd.IsDealStatus == 2 {
+		if err := sr.client.HSet(stockAverageDownKey, data.Code, string(b)).Err(); err != nil {
+			return nil, err
+		}
+		// 添加交易记录
+		cd.Price = data.Price
+		cd.Quantity = data.Quantity
+		b2, err := json.Marshal(cd)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := sr.client.RPush(stockTradeHistoryDataKey, string(b2)).Err(); err != nil {
+			return nil, err
+		}
+	}
+
+	return sr.loadStockRealTimeData()
 }
 
 func (sr *StockRepo) isInStockTime() bool {
@@ -382,6 +418,10 @@ func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
 	return sr.loadStockRealTimeData()
 }
 
+func (sr *StockRepo) GetStockRealTimeListV2() ([]*domain.StockInfo, error) {
+	return sr.loadStockRealTimeData()
+}
+
 func (sr *StockRepo) checkStockLimit(limit int) error {
 	current, err := sr.client.HGetAll(stockRealTimeDataKey).Result()
 	if err != nil {
@@ -389,8 +429,9 @@ func (sr *StockRepo) checkStockLimit(limit int) error {
 	}
 
 	if len(current) >= limit {
-		return fmt.Errorf("up to %d self-selected stocks", limit)
+		return fmt.Errorf("exceeding the position limit; maximum holding of %d stocks", limit)
 	}
+
 	return nil
 }
 
@@ -513,6 +554,10 @@ func (sr *StockRepo) GetHistoryTradeDataList() ([]*domain.StockInfo, error) {
 	result, err := sr.client.LRange(stockTradeHistoryDataKey, 0, -1).Result()
 	if err != nil {
 		return nil, err
+	}
+
+	if len(result) == 0 {
+		return nil, nil
 	}
 
 	var data = make([]*domain.StockInfo, 0, len(result))
