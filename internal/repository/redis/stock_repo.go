@@ -32,7 +32,7 @@ const (
 	stockRealTimeDataKey         = "stock_real_time_data"
 	stockTradeHistoryDataKey     = "stock_trade_history_data"
 	stockRtDataKey               = "get_stock_rt_data"
-	stockRealTimeSwitch          = "stock_real_time_switch"
+	stockRealTimeSwitchKey       = "stock_real_time_switch"
 	stockNoticeKey               = "stock_real_time_notice"
 	filterGoodStockKey           = "filter_good_stock"
 	stockFsSetKey                = "fei_bot"
@@ -43,7 +43,8 @@ const (
 	aiSecretKey                  = "ai_api_key"
 	selfSelectedStocksKey        = "self_selected_stocks"
 	stockAverageDownKey          = "stock_average_down"
-	stockBuyChange               = "stock_buy_change"
+	stockBuyChangeKey            = "stock_buy_change"
+	stockTriggeringRulesKey      = "stock_monitor_config"
 	// 模拟的持仓数量最多20个，具体要看服务器配置
 	maxMonitorStocks = 20
 )
@@ -321,7 +322,7 @@ func (sr *StockRepo) getStockRealTimeDataV2(data domain.AverageDownData) ([]*dom
 	}
 
 	if !isExist {
-		if err := sr.client.HSet(stockBuyChange, data.Code, string(b)).Err(); err != nil {
+		if err := sr.client.HSet(stockBuyChangeKey, data.Code, string(b)).Err(); err != nil {
 			return nil, err
 		}
 	}
@@ -366,7 +367,7 @@ func (sr *StockRepo) isInStockTime() bool {
 
 // GetStockRealTimeList 回归完全阻塞式调用，完美匹配前端等待机制
 func (sr *StockRepo) GetStockRealTimeList() ([]*domain.StockInfo, error) {
-	result, err := sr.client.Get(stockRealTimeSwitch).Result()
+	result, err := sr.client.Get(stockRealTimeSwitchKey).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return sr.loadStockRealTimeData()
 	}
@@ -604,11 +605,11 @@ func (sr *StockRepo) AddHistoryTradeData(code string, TradeType int) ([]*domain.
 }
 
 func (sr *StockRepo) StockRealTimeInfoSwitch(status int) (string, error) {
-	if err := sr.client.Set(stockRealTimeSwitch, status, 0).Err(); err != nil {
+	if err := sr.client.Set(stockRealTimeSwitchKey, status, 0).Err(); err != nil {
 		return "", err
 	}
 
-	result, err := sr.client.Get(stockRealTimeSwitch).Result()
+	result, err := sr.client.Get(stockRealTimeSwitchKey).Result()
 	if err != nil {
 		return result, err
 	}
@@ -987,6 +988,44 @@ func (sr *StockRepo) SetAverageDownInfo(ad domain.AverageDownData) ([]*domain.Av
 	}
 
 	return sr.GetAverageDownList()
+}
+
+func (sr *StockRepo) SetStockTriggeringRulesAlerts(rd domain.TriggeringRules) error {
+	b, err := json.Marshal(&rd)
+	if err != nil {
+		return fmt.Errorf("marshal TriggeringRulesAlerts error: %w", err)
+	}
+
+	if err := sr.client.HSet(stockTriggeringRulesKey, rd.Code, string(b)).Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sr *StockRepo) GetStockTriggeringRulesAlerts() ([]*domain.TriggeringRules, error) {
+	var data []*domain.TriggeringRules
+
+	result, err := sr.client.HVals(stockTriggeringRulesKey).Result()
+	if err != nil {
+		return nil, fmt.Errorf("get ai api key: %w", err)
+	}
+
+	if len(result) == 0 {
+		return data, nil
+	}
+
+	for _, v := range result {
+		sd := new(domain.TriggeringRules)
+
+		if err := json.Unmarshal([]byte(v), sd); err != nil {
+			return nil, fmt.Errorf("unmarshal ai api key: %w", err)
+		}
+
+		data = append(data, sd)
+	}
+
+	return data, nil
 }
 
 func (sr *StockRepo) runScript(fileName string, async bool, args ...interface{}) error {

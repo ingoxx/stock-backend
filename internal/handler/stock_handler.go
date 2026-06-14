@@ -375,7 +375,6 @@ func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *ht
 	}
 
 	hd, err := sh.svc.GetHistoryTradeDataList()
-	fmt.Println("hd >>> ", hd)
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1002,
@@ -1026,6 +1025,58 @@ func (sh *StockHandler) SetAverageDownInfoHandler(w http.ResponseWriter, r *http
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) SetStockTriggeringRulesAlertsHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	req, err := bindAndValidate[domain.TriggeringRules](body, sh.vd, func(r *domain.TriggeringRules) {
+	})
+	if err != nil {
+		writeReqError(w, err)
+		return
+	}
+
+	if err := sh.svc.SetStockTriggeringRulesAlerts(req); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "配置完成",
+		Data: "",
+	})
+}
+
+func (sh *StockHandler) GetStockTriggeringRulesAlertsHandler(w http.ResponseWriter, r *http.Request) {
+	data, err := sh.svc.GetStockTriggeringRulesAlerts()
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
 		})

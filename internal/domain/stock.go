@@ -121,17 +121,24 @@ type ShIndex struct {
 }
 
 type AiApiKey struct {
-	Mode   string `json:"mode"`
-	Preset string `json:"preset"`
-	ApiKey string `json:"apiKey"`
-	ApiUrl string `json:"apiUrl"`
-	Model  string `json:"model"`
+	Mode   string `json:"mode" validate:"required"`
+	Preset string `json:"preset" validate:"required"`
+	ApiKey string `json:"apiKey" validate:"required"`
+	ApiUrl string `json:"apiUrl" validate:"required"`
+	Model  string `json:"model" validate:"required"`
 }
 
 type AverageDownData struct {
 	Code     string  `json:"code"  validate:"required"`
 	Price    float64 `json:"price"  validate:"required"`
 	Quantity int     `json:"quantity"  validate:"required"`
+}
+
+type TriggeringRules struct {
+	Code   string  `json:"code" validate:"required"`
+	Price  float64 `json:"price"`
+	Pct    float64 `json:"pct"`
+	Status int     `json:"status"` // 1: 未发送，2：已发送
 }
 
 type StockInfoRepository interface {
@@ -172,4 +179,6 @@ type StockInfoRepository interface {
 	GetAiApiKey() ([]*AiApiKey, error)
 	GetAverageDownList() ([]*AverageDownData, error)
 	SetAverageDownInfo(ad AverageDownData) ([]*AverageDownData, error)
+	SetStockTriggeringRulesAlerts(rd TriggeringRules) error
+	GetStockTriggeringRulesAlerts() ([]*TriggeringRules, error)
 }

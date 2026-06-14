@@ -80,6 +80,12 @@ func Start() {
 	// 修改补仓信息
 	privateMux.HandleFunc("GET /v1/stock/average-down-update", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.SetAverageDownInfoHandler).ServeHTTP)
 
+	// 配置监控
+	privateMux.HandleFunc("POST /v1/stock/set-alerts", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.SetStockTriggeringRulesAlertsHandler).ServeHTTP)
+
+	// 获取配置监控列表
+	privateMux.HandleFunc("GET /v1/stock/alerts-list", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockTriggeringRulesAlertsHandler).ServeHTTP)
+
 	authMux := middleware.AuthMiddleware(privateMux, rdbConn)
 
 	// 本地测试允许跨域

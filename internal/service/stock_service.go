@@ -157,3 +157,11 @@ func (ss *StockService) GetAverageDownList() ([]*domain.AverageDownData, error) 
 func (ss *StockService) SetAverageDownInfo(ad domain.AverageDownData) ([]*domain.AverageDownData, error) {
 	return ss.repo.SetAverageDownInfo(ad)
 }
+
+func (ss *StockService) SetStockTriggeringRulesAlerts(rd domain.TriggeringRules) error {
+	return ss.repo.SetStockTriggeringRulesAlerts(rd)
+}
+
+func (ss *StockService) GetStockTriggeringRulesAlerts() ([]*domain.TriggeringRules, error) {
+	return ss.repo.GetStockTriggeringRulesAlerts()
+}
