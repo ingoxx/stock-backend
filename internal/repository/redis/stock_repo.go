@@ -229,14 +229,14 @@ func (sr *StockRepo) GetIndustryData(name string) ([]*domain.StockInfo, error) {
 		return nil, err
 	}
 
-	bn := bytes.NewBufferString(result)
-	if err := json.Unmarshal(bn.Bytes(), &md); err != nil {
+	if err := json.Unmarshal([]byte(result), &md); err != nil {
 		return nil, err
 	}
 
 	if md == nil {
 		return nil, fmt.Errorf("fail to Unmarshal data")
 	}
+
 	return md, nil
 }
 
