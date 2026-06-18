@@ -1089,3 +1089,69 @@ func (sh *StockHandler) GetStockTriggeringRulesAlertsHandler(w http.ResponseWrit
 		Data: data,
 	})
 }
+
+func (sh *StockHandler) SetStockTaggingHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	req, err := bindAndValidate[domain.StockTaggingData](body, sh.vd, func(r *domain.StockTaggingData) {
+	})
+	if err != nil {
+		writeReqError(w, err)
+		return
+	}
+
+	data, err := sh.svc.SetStockTagging(req)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}
+
+func (sh *StockHandler) GetStockTaggingHandler(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	code := queryParams.Get("code")
+
+	if code == "" {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  "required parameter 'code' is missing or empty.",
+			Data: "",
+		})
+		return
+	}
+
+	data, err := sh.svc.GetStockTagging(code)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1002,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: data,
+	})
+}

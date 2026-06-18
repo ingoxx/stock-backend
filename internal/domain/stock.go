@@ -141,6 +141,11 @@ type TriggeringRules struct {
 	Status int     `json:"status"` // 1: 未发送，2：已发送
 }
 
+type StockTaggingData struct {
+	Code    string `json:"code" validate:"required"`
+	Content string `json:"content" validate:"required"`
+}
+
 type StockInfoRepository interface {
 	GetStockList() ([]*StockInfo, error)
 	GetStockInfoForDataList(code string) ([]*StockHistoryDate, error)
@@ -181,4 +186,6 @@ type StockInfoRepository interface {
 	SetAverageDownInfo(ad AverageDownData) ([]*AverageDownData, error)
 	SetStockTriggeringRulesAlerts(rd TriggeringRules) error
 	GetStockTriggeringRulesAlerts() ([]*TriggeringRules, error)
+	GetStockTagging(code string) (StockTaggingData, error)
+	SetStockTagging(data StockTaggingData) (StockTaggingData, error)
 }

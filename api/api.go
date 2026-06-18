@@ -86,6 +86,12 @@ func Start() {
 	// 获取配置监控列表
 	privateMux.HandleFunc("GET /v1/stock/alerts-list", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockTriggeringRulesAlertsHandler).ServeHTTP)
 
+	// stock 信息标记
+	privateMux.HandleFunc("POST /v1/stock/set-tag", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.SetStockTaggingHandler).ServeHTTP)
+
+	// 获取stock 的标记信息
+	privateMux.HandleFunc("GET /v1/stock/get-tag", tollbooth.LimitFuncHandler(lmt, stockApp.StockHandler.GetStockTaggingHandler).ServeHTTP)
+
 	authMux := middleware.AuthMiddleware(privateMux, rdbConn)
 
 	// 本地测试允许跨域

@@ -165,3 +165,11 @@ func (ss *StockService) SetStockTriggeringRulesAlerts(rd domain.TriggeringRules)
 func (ss *StockService) GetStockTriggeringRulesAlerts() ([]*domain.TriggeringRules, error) {
 	return ss.repo.GetStockTriggeringRulesAlerts()
 }
+
+func (ss *StockService) SetStockTagging(data domain.StockTaggingData) (domain.StockTaggingData, error) {
+	return ss.repo.SetStockTagging(data)
+}
+
+func (ss *StockService) GetStockTagging(code string) (domain.StockTaggingData, error) {
+	return ss.repo.GetStockTagging(code)
+}

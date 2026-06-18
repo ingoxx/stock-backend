@@ -45,6 +45,7 @@ const (
 	stockAverageDownKey          = "stock_average_down"
 	stockBuyChangeKey            = "stock_buy_change"
 	stockTriggeringRulesKey      = "stock_monitor_config"
+	stockTaggingKey              = "stock_tagging"
 	// 模拟的持仓数量最多20个，具体要看服务器配置
 	maxMonitorStocks = 20
 )
@@ -1023,6 +1024,37 @@ func (sr *StockRepo) GetStockTriggeringRulesAlerts() ([]*domain.TriggeringRules,
 		}
 
 		data = append(data, sd)
+	}
+
+	return data, nil
+}
+
+func (sr *StockRepo) SetStockTagging(data domain.StockTaggingData) (domain.StockTaggingData, error) {
+	b, err := json.Marshal(&data)
+	if err != nil {
+		return data, err
+	}
+
+	if err := sr.client.HSet(stockTaggingKey, data.Code, string(b)).Err(); err != nil {
+		return data, err
+	}
+
+	return data, nil
+}
+
+func (sr *StockRepo) GetStockTagging(code string) (domain.StockTaggingData, error) {
+	var data domain.StockTaggingData
+	result, err := sr.client.HGet(stockTaggingKey, code).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return data, nil
+		}
+
+		return data, err
+	}
+
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return data, err
 	}
 
 	return data, nil
