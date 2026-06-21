@@ -170,6 +170,6 @@ func (ss *StockService) SetStockTagging(data domain.StockTaggingData) (domain.St
 	return ss.repo.SetStockTagging(data)
 }
 
-func (ss *StockService) GetStockTagging(code string) (domain.StockTaggingData, error) {
-	return ss.repo.GetStockTagging(code)
+func (ss *StockService) GetStockTagging() ([]domain.StockTaggingData, error) {
+	return ss.repo.GetStockTagging()
 }

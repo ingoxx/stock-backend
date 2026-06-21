@@ -1127,19 +1127,7 @@ func (sh *StockHandler) SetStockTaggingHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (sh *StockHandler) GetStockTaggingHandler(w http.ResponseWriter, r *http.Request) {
-	queryParams := r.URL.Query()
-	code := queryParams.Get("code")
-
-	if code == "" {
-		utils.ResponseJSON(w, StockResponse{
-			Code: 1001,
-			Msg:  "required parameter 'code' is missing or empty.",
-			Data: "",
-		})
-		return
-	}
-
-	data, err := sh.svc.GetStockTagging(code)
+	data, err := sh.svc.GetStockTagging()
 	if err != nil {
 		utils.ResponseJSON(w, StockResponse{
 			Code: 1002,

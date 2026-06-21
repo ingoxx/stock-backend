@@ -1042,19 +1042,30 @@ func (sr *StockRepo) SetStockTagging(data domain.StockTaggingData) (domain.Stock
 	return data, nil
 }
 
-func (sr *StockRepo) GetStockTagging(code string) (domain.StockTaggingData, error) {
-	var data domain.StockTaggingData
-	result, err := sr.client.HGet(stockTaggingKey, code).Result()
+func (sr *StockRepo) GetStockTagging() ([]domain.StockTaggingData, error) {
+
+	result, err := sr.client.HVals(stockTaggingKey).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return data, nil
+			return nil, nil
 		}
 
-		return data, err
+		return nil, err
 	}
 
-	if err := json.Unmarshal([]byte(result), &data); err != nil {
-		return data, err
+	if len(result) == 0 {
+		return nil, nil
+	}
+
+	var data = make([]domain.StockTaggingData, 0, len(result))
+
+	for _, v := range result {
+		var sd domain.StockTaggingData
+		if err := json.Unmarshal([]byte(v), &sd); err != nil {
+			return nil, fmt.Errorf("unmarshal %s key: %w", stockTaggingKey, err)
+		}
+
+		data = append(data, sd)
 	}
 
 	return data, nil

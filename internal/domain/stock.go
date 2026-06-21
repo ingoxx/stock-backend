@@ -135,10 +135,11 @@ type AverageDownData struct {
 }
 
 type TriggeringRules struct {
-	Code   string  `json:"code" validate:"required"`
-	Price  float64 `json:"price"`
-	Pct    float64 `json:"pct"`
-	Status int     `json:"status"` // 1: 未发送，2：已发送
+	Code          string  `json:"code" validate:"required"`
+	Price         float64 `json:"price"`
+	Pct           float64 `json:"pct"`
+	LastAlertTime int64   `json:"last_alert_time,omitempty"`
+	Status        int     `json:"status"` // 1: 未发送，2：已发送
 }
 
 type StockTaggingData struct {
@@ -186,6 +187,6 @@ type StockInfoRepository interface {
 	SetAverageDownInfo(ad AverageDownData) ([]*AverageDownData, error)
 	SetStockTriggeringRulesAlerts(rd TriggeringRules) error
 	GetStockTriggeringRulesAlerts() ([]*TriggeringRules, error)
-	GetStockTagging(code string) (StockTaggingData, error)
+	GetStockTagging() ([]StockTaggingData, error)
 	SetStockTagging(data StockTaggingData) (StockTaggingData, error)
 }
