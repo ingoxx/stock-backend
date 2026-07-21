@@ -51,8 +51,8 @@ const (
 )
 
 type StockRepo struct {
-	mu     sync.RWMutex
 	client *redis.Client
+	mu     sync.RWMutex
 	wg     sync.WaitGroup
 	// 恢复 singleflight，防止用户打开多个浏览器标签页导致的重复请求挤兑服务器
 	sf singleflight.Group
