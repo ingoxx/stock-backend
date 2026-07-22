@@ -18,6 +18,7 @@ func Start() {
 	goldenApp := server.NewGoldenApp(rdbConn)
 	stockApp := server.NewStockApp(rdbConn)
 	verifyApp := server.NewVerifyApp(rdbConn)
+	docApp := server.NewDocApp()
 
 	lmt := tollbooth.NewLimiter(configs.MaxReqFrequency, nil)
 
@@ -100,11 +101,19 @@ func Start() {
 	// 公共可以访问, 不需要走中间件验证
 	publicMux := http.NewServeMux()
 	publicMux.HandleFunc("POST /v1/auth", tollbooth.LimitFuncHandler(lmt, verifyApp.VerifyHandler.Auth).ServeHTTP)
+	publicMux.HandleFunc("POST /v1/create-category", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.CreateCategoriesHandler).ServeHTTP)
+	publicMux.HandleFunc("POST /v1/create-problem", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.CreateProblemsHandler).ServeHTTP)
+	publicMux.HandleFunc("GET /v1/get-category", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.GetCategoriesHandler).ServeHTTP)
+	publicMux.HandleFunc("GET /v1/get-problem", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.GetProblemsHandler).ServeHTTP)
 
 	// 总的路由控制
 	rootMux := http.NewServeMux()
 	rootMux.Handle("/", authMux)
 	rootMux.Handle("/v1/auth", publicMux)
+	rootMux.Handle("/v1/create-category", publicMux)
+	rootMux.Handle("/v1/create-problem", publicMux)
+	rootMux.Handle("/v1/get-category", publicMux)
+	rootMux.Handle("/v1/get-problem", publicMux)
 
 	log.Println(fmt.Sprintf("Server started on :%d, version: %s", configs.HttpPort, configs.Version))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", configs.HttpPort), rootMux))
