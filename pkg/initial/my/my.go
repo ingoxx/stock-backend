@@ -1,13 +1,13 @@
 package my
 
 import (
-	"github.com/ingoxx/stock-backend/configs"
+	"github.com/ingoxx/stock-backend/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 func InitMy() *gorm.DB {
-	dsn := configs.MyDsn
+	dsn := config.MyDsn
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
 	if err != nil {

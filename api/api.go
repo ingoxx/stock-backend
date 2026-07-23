@@ -8,7 +8,7 @@ import (
 	"github.com/didip/tollbooth"
 	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/cmd/server"
-	"github.com/ingoxx/stock-backend/configs"
+	"github.com/ingoxx/stock-backend/config"
 	"github.com/ingoxx/stock-backend/internal/middleware"
 )
 
@@ -20,7 +20,7 @@ func Start() {
 	verifyApp := server.NewVerifyApp(rdbConn)
 	docApp := server.NewDocApp()
 
-	lmt := tollbooth.NewLimiter(configs.MaxReqFrequency, nil)
+	lmt := tollbooth.NewLimiter(config.MaxReqFrequency, nil)
 
 	// 需要走中间件验证
 	privateMux := http.NewServeMux()
@@ -105,6 +105,10 @@ func Start() {
 	publicMux.HandleFunc("POST /v1/create-problem", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.CreateProblemsHandler).ServeHTTP)
 	publicMux.HandleFunc("GET /v1/get-category", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.GetCategoriesHandler).ServeHTTP)
 	publicMux.HandleFunc("GET /v1/get-problem", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.GetProblemsHandler).ServeHTTP)
+	publicMux.HandleFunc("POST /v1/del-problem", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.DeleteProblemHandler).ServeHTTP)
+	publicMux.HandleFunc("POST /v1/del-category", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.DeleteCategoryHandler).ServeHTTP)
+	publicMux.HandleFunc("POST /v1/update-problem-category", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.UpdateProblemCategoryHandler).ServeHTTP)
+	publicMux.HandleFunc("POST /v1/upload-file", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.UploadFileHandler).ServeHTTP)
 
 	// 总的路由控制
 	rootMux := http.NewServeMux()
@@ -114,7 +118,11 @@ func Start() {
 	rootMux.Handle("/v1/create-problem", publicMux)
 	rootMux.Handle("/v1/get-category", publicMux)
 	rootMux.Handle("/v1/get-problem", publicMux)
+	rootMux.Handle("/v1/del-problem", publicMux)
+	rootMux.Handle("/v1/del-category", publicMux)
+	rootMux.Handle("/v1/update-problem-category", publicMux)
+	rootMux.Handle("/v1/upload-file", publicMux)
 
-	log.Println(fmt.Sprintf("Server started on :%d, version: %s", configs.HttpPort, configs.Version))
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", configs.HttpPort), rootMux))
+	log.Println(fmt.Sprintf("Server started on :%d, version: %s", config.HttpPort, config.Version))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.HttpPort), rootMux))
 }

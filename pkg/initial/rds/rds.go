@@ -1,10 +1,11 @@
 package rds
 
 import (
-	"github.com/go-redis/redis"
-	"github.com/ingoxx/stock-backend/configs"
 	"sync"
 	"time"
+
+	"github.com/go-redis/redis"
+	"github.com/ingoxx/stock-backend/config"
 )
 
 var (
@@ -14,10 +15,10 @@ var (
 func NewRedisClient(db int) (*redis.Client, error) {
 	rds := redis.NewClient(
 		&redis.Options{
-			Addr:         configs.RedisHost,
+			Addr:         config.RedisHost,
 			DB:           db,
 			MinIdleConns: 5,
-			Password:     configs.RedisPwd,
+			Password:     config.RedisPwd,
 			PoolSize:     5,
 			PoolTimeout:  30 * time.Second,
 			DialTimeout:  30 * time.Second,

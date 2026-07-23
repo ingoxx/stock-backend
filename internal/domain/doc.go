@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"io"
 	"time"
 )
 
@@ -8,8 +9,8 @@ import (
 type Category struct {
 	ID        uint      `json:"id" gorm:"primaryKey;autoIncrement"`
 	Name      string    `json:"name" validate:"required" gorm:"type:varchar(100);not null"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"autoCreateTime"`
 	Problems  []Problem `json:"problems,omitempty" gorm:"foreignKey:CategoryID;references:ID"`
 }
 
@@ -24,8 +25,8 @@ type Problem struct {
 	// foreignKey:ProblemID 表示 FileItem 表中通过 ProblemID 外键关联到这里的 ID
 	Files []FileItem `json:"file_url,omitempty" gorm:"foreignKey:ProblemID;references:ID"`
 
-	CreatedAt time.Time `json:"date"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"date" gorm:"autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"autoCreateTime"`
 
 	Category *Category `json:"category,omitempty" gorm:"foreignKey:CategoryID;references:ID"`
 }
@@ -43,4 +44,8 @@ type DocRepository interface {
 	GetProblems(page int) ([]*Problem, error)
 	CreateCategories(data Category) (Category, error)
 	CreateProblems(data Problem) (*Problem, error)
+	DeleteCategory(id uint) error
+	DeleteProblem(id uint) error
+	UpdateProblemCategory(problemID uint, newCategoryID uint) error
+	UploadFile(problemID uint, fileName string, src io.Reader) (*FileItem, error)
 }
