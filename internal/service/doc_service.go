@@ -45,3 +45,7 @@ func (ds *DocService) UpdateProblemCategory(problemID uint, newCategoryID uint) 
 func (ds *DocService) UploadFile(problemID uint, fileName string, src io.Reader) (*domain.FileItem, error) {
 	return ds.repo.UploadFile(problemID, fileName, src)
 }
+
+func (ds *DocService) DeleteFilesByProblemID(problemID uint) error {
+	return ds.repo.DeleteFilesByProblemID(problemID)
+}

@@ -335,3 +335,40 @@ func (dh *DocHandler) UploadFileHandler(w http.ResponseWriter, r *http.Request) 
 		Data: data,
 	})
 }
+
+// DeleteFileHandler 删除单张附件 Handler
+func (dh *DocHandler) DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	req, err := bindAndValidate[DelReq](body, dh.vd, func(r *DelReq) {
+	})
+	if err != nil {
+		writeReqError(w, err)
+		return
+	}
+
+	// 调用 repo/service 删除文件
+	if err := dh.svc.DeleteFilesByProblemID(req.Id); err != nil {
+		utils.ResponseJSON(w, StockResponse{
+			Code: 1001,
+			Msg:  "删除文件失败: " + err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, StockResponse{
+		Code: 1000,
+		Msg:  "ok",
+		Data: nil,
+	})
+}

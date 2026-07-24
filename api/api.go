@@ -109,6 +109,7 @@ func Start() {
 	publicMux.HandleFunc("POST /v1/del-category", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.DeleteCategoryHandler).ServeHTTP)
 	publicMux.HandleFunc("POST /v1/update-problem-category", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.UpdateProblemCategoryHandler).ServeHTTP)
 	publicMux.HandleFunc("POST /v1/upload-file", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.UploadFileHandler).ServeHTTP)
+	publicMux.HandleFunc("POST /v1/del-file", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.DeleteFileHandler).ServeHTTP)
 
 	// 总的路由控制
 	rootMux := http.NewServeMux()
@@ -122,6 +123,7 @@ func Start() {
 	rootMux.Handle("/v1/del-category", publicMux)
 	rootMux.Handle("/v1/update-problem-category", publicMux)
 	rootMux.Handle("/v1/upload-file", publicMux)
+	rootMux.Handle("/v1/del-file", publicMux)
 
 	log.Println(fmt.Sprintf("Server started on :%d, version: %s", config.HttpPort, config.Version))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.HttpPort), rootMux))

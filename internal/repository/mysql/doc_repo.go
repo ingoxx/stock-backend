@@ -15,7 +15,7 @@ import (
 const (
 	pageSize = 10
 	saveDir  = "/opt/uploads/profile3"
-	url      = "https://ai.anythingai.online/static/profile3/"
+	url      = "https://ai.anythingai.online/static/profile3"
 )
 
 type DocRepo struct {
@@ -216,4 +216,32 @@ func (dr *DocRepo) UploadFile(problemID uint, fileName string, src io.Reader) (*
 	}
 
 	return &fileItem, nil
+}
+
+// DeleteFilesByProblemID 删除指定问题下的所有附件文件（同步清理数据库记录与磁盘文件）
+func (dr *DocRepo) DeleteFilesByProblemID(problemID uint) error {
+	// 1. 先查询出该问题关联的所有 FileItem，获取物理文件 URL
+	var files []domain.FileItem
+	if err := dr.db.Where("problem_id = ?", problemID).Find(&files).Error; err != nil {
+		return err
+	}
+
+	if len(files) == 0 {
+		return nil
+	}
+
+	// 2. 从 MySQL 中删除对应记录
+	if err := dr.db.Where("problem_id = ?", problemID).Delete(&domain.FileItem{}).Error; err != nil {
+		return err
+	}
+
+	// 3. 异步/同步删除服务器磁盘上的物理文件
+	for _, file := range files {
+		// file.URL 形如 "/uploads/1710500000_test.png"
+		// 拼成本地文件路径： "./uploads/1710500000_test.png"
+		localPath := filepath.Join(saveDir, file.Name)
+		_ = os.Remove(localPath) // 忽略可能出现的文件已被手动删掉的错误
+	}
+
+	return nil
 }

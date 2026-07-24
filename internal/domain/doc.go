@@ -48,4 +48,5 @@ type DocRepository interface {
 	DeleteProblem(id uint) error
 	UpdateProblemCategory(problemID uint, newCategoryID uint) error
 	UploadFile(problemID uint, fileName string, src io.Reader) (*FileItem, error)
+	DeleteFilesByProblemID(problemID uint) error
 }
