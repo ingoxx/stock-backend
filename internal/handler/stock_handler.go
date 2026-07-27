@@ -17,7 +17,7 @@ type StockHandler struct {
 	vd  *validator.Validate
 }
 
-type StockResponse struct {
+type Response struct {
 	Code  int         `json:"code"`
 	Msg   string      `json:"msg"`
 	Data  interface{} `json:"data"`
@@ -71,7 +71,7 @@ func (sh *StockHandler) GetStockListHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: list,
@@ -92,7 +92,7 @@ func (sh *StockHandler) GetStockInfoForDataListHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: list,
@@ -107,7 +107,7 @@ func (sh *StockHandler) GetStockIndustryListHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: list,
@@ -124,7 +124,7 @@ func (sh *StockHandler) GetIndustryStockUpDownHandler(w http.ResponseWriter, r *
 
 	data, err := sh.svc.GetShIndexRealTimeData(false)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -134,7 +134,7 @@ func (sh *StockHandler) GetIndustryStockUpDownHandler(w http.ResponseWriter, r *
 
 	inflowData, err := sh.svc.GetCapitalInflowData(false)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1002,
 			Msg:  err.Error(),
 			Data: "",
@@ -148,7 +148,7 @@ func (sh *StockHandler) GetIndustryStockUpDownHandler(w http.ResponseWriter, r *
 	md["sh_index_data"] = data
 	md["capital_inflow_data"] = inflowData
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code:  1000,
 		Msg:   "ok",
 		Data:  md,
@@ -164,7 +164,7 @@ func (sh *StockHandler) GetStockMarketDataHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: ud,
@@ -179,7 +179,7 @@ func (sh *StockHandler) GetStockDataSwitchHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "retrieving the latest data, pls wait a minute.",
 		Data: "",
@@ -190,7 +190,7 @@ func (sh *StockHandler) GetStockDataSwitchHandler(w http.ResponseWriter, r *http
 func (sh *StockHandler) GetStockDataStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := sh.svc.GetStockDataStatus(); err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -198,7 +198,7 @@ func (sh *StockHandler) GetStockDataStatusHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: "",
@@ -210,7 +210,7 @@ func (sh *StockHandler) GetIndustryDataHandler(w http.ResponseWriter, r *http.Re
 	queryParams := r.URL.Query()
 	name := queryParams.Get("name")
 	if name == "" {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  "required parameter 'name' is missing or empty.",
 			Data: "",
@@ -220,7 +220,7 @@ func (sh *StockHandler) GetIndustryDataHandler(w http.ResponseWriter, r *http.Re
 
 	data, err := sh.svc.GetIndustryData(name)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -228,7 +228,7 @@ func (sh *StockHandler) GetIndustryDataHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -241,7 +241,7 @@ func (sh *StockHandler) GetStockCusDaysDataHandler(w http.ResponseWriter, r *htt
 	code := queryParams.Get("code")
 	days := queryParams.Get("days")
 	if code == "" {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  "required parameter 'name' is missing or empty.",
 			Data: "",
@@ -255,7 +255,7 @@ func (sh *StockHandler) GetStockCusDaysDataHandler(w http.ResponseWriter, r *htt
 
 	data, err := sh.svc.GetStockHistoryData(code, days)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -263,7 +263,7 @@ func (sh *StockHandler) GetStockCusDaysDataHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -275,7 +275,7 @@ func (sh *StockHandler) GetStockInfoDataHandler(w http.ResponseWriter, r *http.R
 	queryParams := r.URL.Query()
 	code := queryParams.Get("code")
 	if code == "" {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  "required parameter 'code' is missing or empty.",
 			Data: "",
@@ -285,7 +285,7 @@ func (sh *StockHandler) GetStockInfoDataHandler(w http.ResponseWriter, r *http.R
 
 	data, err := sh.svc.GetStockInfoData(code)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -293,7 +293,7 @@ func (sh *StockHandler) GetStockInfoDataHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -307,7 +307,7 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 	//price := queryParams.Get("price")   // 委托价格
 	//hold := queryParams.Get("quantity") // 买入数量
 	//if code == "" || price == "" || hold == "" {
-	//	utils.ResponseJSON(w, StockResponse{
+	//	utils.ResponseJSON(w, Response{
 	//		Code: 1001,
 	//		Msg:  "required parameter 'code' or 'price', 'hold' is missing or empty.",
 	//		Data: "",
@@ -317,7 +317,7 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -334,7 +334,7 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 
 	data, err := sh.svc.GetStockRealTimeData(req)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -344,7 +344,7 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 
 	hd, err := sh.svc.GetHistoryTradeDataList()
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1002,
 			Msg:  err.Error(),
 			Data: "",
@@ -356,7 +356,7 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 	md["hd"] = hd
 	md["data"] = data
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: md,
@@ -366,7 +366,7 @@ func (sh *StockHandler) GetStockRealTimeDataHandler(w http.ResponseWriter, r *ht
 func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := sh.svc.GetStockRealTimeListV2()
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -376,7 +376,7 @@ func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *ht
 
 	hd, err := sh.svc.GetHistoryTradeDataList()
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1002,
 			Msg:  err.Error(),
 			Data: "",
@@ -386,7 +386,7 @@ func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *ht
 
 	sad, err := sh.svc.GetAverageDownList()
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1003,
 			Msg:  err.Error(),
 			Data: "",
@@ -399,7 +399,7 @@ func (sh *StockHandler) GetStockRealTimeListHandler(w http.ResponseWriter, r *ht
 	md["data"] = data
 	md["ad"] = sad
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: md,
@@ -410,7 +410,7 @@ func (sh *StockHandler) DelSelfSelectedStockHandler(w http.ResponseWriter, r *ht
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -427,7 +427,7 @@ func (sh *StockHandler) DelSelfSelectedStockHandler(w http.ResponseWriter, r *ht
 	}
 
 	if err := sh.svc.DelSelfSelectedStock(req.Code); err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1004,
 			Msg:  err.Error(),
 			Data: "",
@@ -435,7 +435,7 @@ func (sh *StockHandler) DelSelfSelectedStockHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: "",
@@ -445,7 +445,7 @@ func (sh *StockHandler) DelSelfSelectedStockHandler(w http.ResponseWriter, r *ht
 func (sh *StockHandler) UpdateStockDealStatusHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -463,7 +463,7 @@ func (sh *StockHandler) UpdateStockDealStatusHandler(w http.ResponseWriter, r *h
 
 	data, err := sh.svc.UpdateStockDealStatus(req.Code, req.Status)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1004,
 			Msg:  err.Error(),
 			Data: "",
@@ -471,7 +471,7 @@ func (sh *StockHandler) UpdateStockDealStatusHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -481,7 +481,7 @@ func (sh *StockHandler) UpdateStockDealStatusHandler(w http.ResponseWriter, r *h
 func (sh *StockHandler) AddHistoryTradeDataHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -499,7 +499,7 @@ func (sh *StockHandler) AddHistoryTradeDataHandler(w http.ResponseWriter, r *htt
 
 	data, err := sh.svc.AddHistoryTradeData(req.Code, req.TradeType)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1004,
 			Msg:  err.Error(),
 			Data: "",
@@ -507,7 +507,7 @@ func (sh *StockHandler) AddHistoryTradeDataHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -517,7 +517,7 @@ func (sh *StockHandler) AddHistoryTradeDataHandler(w http.ResponseWriter, r *htt
 func (sh *StockHandler) GetHistoryTradeDataListHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := sh.svc.GetHistoryTradeDataList()
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -525,7 +525,7 @@ func (sh *StockHandler) GetHistoryTradeDataListHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -535,7 +535,7 @@ func (sh *StockHandler) GetHistoryTradeDataListHandler(w http.ResponseWriter, r 
 func (sh *StockHandler) StockRealTimeInfoSwitchHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -551,7 +551,7 @@ func (sh *StockHandler) StockRealTimeInfoSwitchHandler(w http.ResponseWriter, r 
 
 	data, err := sh.svc.StockRealTimeInfoSwitch(req.Status)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1004,
 			Msg:  err.Error(),
 			Data: "",
@@ -568,7 +568,7 @@ func (sh *StockHandler) StockRealTimeInfoSwitchHandler(w http.ResponseWriter, r 
 		msg = "ok"
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  msg,
 		Data: data,
@@ -580,7 +580,7 @@ func (sh *StockHandler) GetStockRtDataHandler(w http.ResponseWriter, r *http.Req
 	code := queryParams.Get("code")
 
 	if code == "" {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  "required parameter 'code' is missing or empty.",
 			Data: "",
@@ -590,14 +590,14 @@ func (sh *StockHandler) GetStockRtDataHandler(w http.ResponseWriter, r *http.Req
 
 	data, err := sh.svc.GetStockRtData(code)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1002,
 			Msg:  err.Error(),
 			Data: "",
 		})
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -608,7 +608,7 @@ func (sh *StockHandler) GetStockRtDataHandler(w http.ResponseWriter, r *http.Req
 func (sh *StockHandler) StockNoticeSwitchHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -624,7 +624,7 @@ func (sh *StockHandler) StockNoticeSwitchHandler(w http.ResponseWriter, r *http.
 
 	data, err := sh.svc.StockNoticeSwitch(req.Status)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1004,
 			Msg:  err.Error(),
 			Data: "",
@@ -632,7 +632,7 @@ func (sh *StockHandler) StockNoticeSwitchHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -648,7 +648,7 @@ func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Requ
 	trend := queryParams.Get("trend")
 
 	if industry == "" || days == "" || lookBackDays == "" {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  "required parameter 'industry', 'days', 'lookBackDays' is missing or empty.",
 			Data: "",
@@ -666,7 +666,7 @@ func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Requ
 
 	data, err := sh.svc.GetGoodStocks(industry, days, lookBackDays, price, trend)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -674,7 +674,7 @@ func (sh *StockHandler) GetGoodStocksHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  fmt.Sprintf("正在分析%s行业下的所有股票数据,大概需要1分钟左右", industry),
 		Data: data,
@@ -690,7 +690,7 @@ func (sh *StockHandler) FilterGoodStocksHistoryHandler(w http.ResponseWriter, r 
 
 	data, err := sh.svc.FilterGoodStocksHistory(trend)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -698,7 +698,7 @@ func (sh *StockHandler) FilterGoodStocksHistoryHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -708,7 +708,7 @@ func (sh *StockHandler) FilterGoodStocksHistoryHandler(w http.ResponseWriter, r 
 func (sh *StockHandler) StockNoticeFsSetHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -723,7 +723,7 @@ func (sh *StockHandler) StockNoticeFsSetHandler(w http.ResponseWriter, r *http.R
 	}
 
 	if err := sh.svc.StockNoticeFsSet(req.WebHook, req.Word); err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1005,
 			Msg:  err.Error(),
 			Data: "",
@@ -731,7 +731,7 @@ func (sh *StockHandler) StockNoticeFsSetHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "配置完成",
 		Data: "",
@@ -740,7 +740,7 @@ func (sh *StockHandler) StockNoticeFsSetHandler(w http.ResponseWriter, r *http.R
 
 func (sh *StockHandler) SendFsInfoHandler(w http.ResponseWriter, r *http.Request) {
 	if err := sh.svc.SendFsInfo(); err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1004,
 			Msg:  err.Error(),
 			Data: "",
@@ -748,7 +748,7 @@ func (sh *StockHandler) SendFsInfoHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "发送完成,请检查是否收到信息",
 		Data: "",
@@ -761,7 +761,7 @@ func (sh *StockHandler) GetStockHistoryDataDateRangeHandler(w http.ResponseWrite
 	start := queryParams.Get("start")
 	end := queryParams.Get("end")
 	if code == "" || start == "" || end == "" {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  "required parameter 'code' or 'start_date' or 'end_date' is missing or empty.",
 			Data: "",
@@ -771,7 +771,7 @@ func (sh *StockHandler) GetStockHistoryDataDateRangeHandler(w http.ResponseWrite
 
 	data, err := sh.svc.GetStockHistoryDataDateRange(code, start, end)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -779,7 +779,7 @@ func (sh *StockHandler) GetStockHistoryDataDateRangeHandler(w http.ResponseWrite
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -789,7 +789,7 @@ func (sh *StockHandler) GetStockHistoryDataDateRangeHandler(w http.ResponseWrite
 func (sh *StockHandler) UpdateStockHoldingsHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -807,7 +807,7 @@ func (sh *StockHandler) UpdateStockHoldingsHandler(w http.ResponseWriter, r *htt
 
 	data, err := sh.svc.UpdateStockHoldings(req.Code, req.Price, req.Quantity)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1004,
 			Msg:  err.Error(),
 			Data: "",
@@ -815,7 +815,7 @@ func (sh *StockHandler) UpdateStockHoldingsHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -826,7 +826,7 @@ func (sh *StockHandler) GetShIndexRealTimeDataHandler(w http.ResponseWriter, r *
 	data, err := sh.svc.GetShIndexRealTimeData(true)
 
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -834,7 +834,7 @@ func (sh *StockHandler) GetShIndexRealTimeDataHandler(w http.ResponseWriter, r *
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -844,7 +844,7 @@ func (sh *StockHandler) GetShIndexRealTimeDataHandler(w http.ResponseWriter, r *
 func (sh *StockHandler) GetCapitalInflowDataHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := sh.svc.GetCapitalInflowData(true)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -852,7 +852,7 @@ func (sh *StockHandler) GetCapitalInflowDataHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -862,7 +862,7 @@ func (sh *StockHandler) GetCapitalInflowDataHandler(w http.ResponseWriter, r *ht
 func (sh *StockHandler) GetSelfSelectedStockListHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := sh.svc.GetSelfSelectedStockList()
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -870,7 +870,7 @@ func (sh *StockHandler) GetSelfSelectedStockListHandler(w http.ResponseWriter, r
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -880,7 +880,7 @@ func (sh *StockHandler) GetSelfSelectedStockListHandler(w http.ResponseWriter, r
 func (sh *StockHandler) AddSelfSelectedStockHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -898,7 +898,7 @@ func (sh *StockHandler) AddSelfSelectedStockHandler(w http.ResponseWriter, r *ht
 
 	data, err := sh.svc.AddSelfSelectedStock(req.Code)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1002,
 			Msg:  err.Error(),
 			Data: "",
@@ -906,7 +906,7 @@ func (sh *StockHandler) AddSelfSelectedStockHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -916,7 +916,7 @@ func (sh *StockHandler) AddSelfSelectedStockHandler(w http.ResponseWriter, r *ht
 func (sh *StockHandler) SelfSelectedStockDelHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -933,7 +933,7 @@ func (sh *StockHandler) SelfSelectedStockDelHandler(w http.ResponseWriter, r *ht
 	}
 
 	if err := sh.svc.SelfSelectedStockDel(req.Code); err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -941,7 +941,7 @@ func (sh *StockHandler) SelfSelectedStockDelHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: "",
@@ -951,7 +951,7 @@ func (sh *StockHandler) SelfSelectedStockDelHandler(w http.ResponseWriter, r *ht
 func (sh *StockHandler) SetAiApiKeyHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -968,7 +968,7 @@ func (sh *StockHandler) SetAiApiKeyHandler(w http.ResponseWriter, r *http.Reques
 
 	data, err := sh.svc.SetAiApiKey(req)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1002,
 			Msg:  err.Error(),
 			Data: "",
@@ -977,7 +977,7 @@ func (sh *StockHandler) SetAiApiKeyHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -987,7 +987,7 @@ func (sh *StockHandler) SetAiApiKeyHandler(w http.ResponseWriter, r *http.Reques
 func (sh *StockHandler) GetAiApiKeyHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := sh.svc.GetAiApiKey()
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -995,7 +995,7 @@ func (sh *StockHandler) GetAiApiKeyHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -1006,7 +1006,7 @@ func (sh *StockHandler) SetAverageDownInfoHandler(w http.ResponseWriter, r *http
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -1023,7 +1023,7 @@ func (sh *StockHandler) SetAverageDownInfoHandler(w http.ResponseWriter, r *http
 
 	data, err := sh.svc.SetAverageDownInfo(req)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1002,
 			Msg:  err.Error(),
 			Data: "",
@@ -1031,7 +1031,7 @@ func (sh *StockHandler) SetAverageDownInfoHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -1041,7 +1041,7 @@ func (sh *StockHandler) SetAverageDownInfoHandler(w http.ResponseWriter, r *http
 func (sh *StockHandler) SetStockTriggeringRulesAlertsHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -1057,7 +1057,7 @@ func (sh *StockHandler) SetStockTriggeringRulesAlertsHandler(w http.ResponseWrit
 	}
 
 	if err := sh.svc.SetStockTriggeringRulesAlerts(req); err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1002,
 			Msg:  err.Error(),
 			Data: "",
@@ -1065,7 +1065,7 @@ func (sh *StockHandler) SetStockTriggeringRulesAlertsHandler(w http.ResponseWrit
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "配置完成",
 		Data: "",
@@ -1075,7 +1075,7 @@ func (sh *StockHandler) SetStockTriggeringRulesAlertsHandler(w http.ResponseWrit
 func (sh *StockHandler) GetStockTriggeringRulesAlertsHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := sh.svc.GetStockTriggeringRulesAlerts()
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -1083,7 +1083,7 @@ func (sh *StockHandler) GetStockTriggeringRulesAlertsHandler(w http.ResponseWrit
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -1093,7 +1093,7 @@ func (sh *StockHandler) GetStockTriggeringRulesAlertsHandler(w http.ResponseWrit
 func (sh *StockHandler) SetStockTaggingHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
@@ -1110,7 +1110,7 @@ func (sh *StockHandler) SetStockTaggingHandler(w http.ResponseWriter, r *http.Re
 
 	data, err := sh.svc.SetStockTagging(req)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1002,
 			Msg:  err.Error(),
 			Data: "",
@@ -1119,7 +1119,7 @@ func (sh *StockHandler) SetStockTaggingHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,
@@ -1129,7 +1129,7 @@ func (sh *StockHandler) SetStockTaggingHandler(w http.ResponseWriter, r *http.Re
 func (sh *StockHandler) GetStockTaggingHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := sh.svc.GetStockTagging()
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1002,
 			Msg:  err.Error(),
 			Data: "",
@@ -1137,7 +1137,7 @@ func (sh *StockHandler) GetStockTaggingHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "ok",
 		Data: data,

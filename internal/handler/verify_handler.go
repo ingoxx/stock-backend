@@ -25,44 +25,13 @@ func NewVerifyHandler(svc *service.VerifyService, vd *validator.Validate) *Verif
 func (au *VerifyHandler) Auth(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1001,
 			Msg:  err.Error(),
 			Data: "",
 		})
 		return
 	}
-
-	//var ssd AuthReq
-	//if err := json.Unmarshal(body, &ssd); err != nil {
-	//	utils.ResponseJSON(w, StockResponse{
-	//		Code: 1002,
-	//		Msg:  err.Error(),
-	//		Data: "",
-	//	})
-	//	return
-	//}
-	//
-	//if err := au.vd.Struct(ssd); err != nil {
-	//	var validationErrors validator.ValidationErrors
-	//	if errors.As(err, &validationErrors) {
-	//		for _, e := range validationErrors {
-	//			utils.ResponseJSON(w, StockResponse{
-	//				Code: 1003,
-	//				Msg:  fmt.Sprintf("required parameter '%s' is missing or empty.", e.Field()),
-	//				Data: "",
-	//			})
-	//			return
-	//		}
-	//	}
-	//
-	//	utils.ResponseJSON(w, StockResponse{
-	//		Code: 1003,
-	//		Msg:  err.Error(),
-	//		Data: "",
-	//	})
-	//	return
-	//}
 
 	req, err := bindAndValidate[AuthReq](body, au.vd, func(r *AuthReq) {})
 	if err != nil {
@@ -71,7 +40,7 @@ func (au *VerifyHandler) Auth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := au.svc.GetAuthData(req.Sign); err != nil {
-		utils.ResponseJSON(w, StockResponse{
+		utils.ResponseJSON(w, Response{
 			Code: 1004,
 			Msg:  err.Error(),
 			Data: "",
@@ -79,7 +48,7 @@ func (au *VerifyHandler) Auth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: 1000,
 		Msg:  "verification successful",
 		Data: "",

@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	db = 10
+	gd = 10
 )
 
 type VerifyApp struct {
@@ -25,7 +25,7 @@ type VerifyResp struct {
 
 func NewVerifyApp(rc map[int]*redis.Client) *VerifyApp {
 	validate := validator.New()
-	client := rds.GetRedisClient(db, rc)
+	client := rds.GetRedisClient(gd, rc)
 	verifyRepo := rdbRepo.NewVerifyRepo(client)
 	verifyService := service.NewVerifyService(verifyRepo)
 	verifyHandler := handler.NewVerifyHandler(verifyService, validate)

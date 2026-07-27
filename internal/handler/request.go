@@ -49,7 +49,7 @@ func writeReqError(w http.ResponseWriter, err error) {
 		re = &RequestError{Code: 1003, Msg: err.Error()}
 	}
 
-	utils.ResponseJSON(w, StockResponse{
+	utils.ResponseJSON(w, Response{
 		Code: re.Code,
 		Msg:  re.Msg,
 		Data: "",
