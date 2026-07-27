@@ -16,6 +16,11 @@ type DelReq struct {
 	Id uint `json:"id" form:"id" validate:"required"`
 }
 
+type RegisterReq struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
 type UpdateProblemCategoriesReq struct {
 	Cid uint `json:"cid" form:"cid" validate:"required"` // 修复：修改 tag 为 cid
 	Pid uint `json:"pid" form:"pid" validate:"required"` // 修复：修改 tag 为 pid
@@ -62,13 +67,18 @@ func (dh *DocHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := bindAndValidate[domain.User](body, dh.vd, nil)
+	req, err := bindAndValidate[RegisterReq](body, dh.vd, nil)
 	if err != nil {
 		writeReqError(w, err)
 		return
 	}
 
-	user, err := dh.svc.RegisterUser(&req)
+	u := &domain.User{
+		Username: req.Username,
+		Password: req.Password, // 此时密码已被正确赋值
+	}
+
+	user, err := dh.svc.RegisterUser(u)
 	if err != nil {
 		utils.ResponseJSON(w, utils.Response{
 			Code: 1001,
