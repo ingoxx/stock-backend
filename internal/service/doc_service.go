@@ -22,8 +22,8 @@ func (ds *DocService) CreateProblems(userID uint, data domain.Problem) (*domain.
 	return ds.repo.CreateProblems(userID, data)
 }
 
-func (ds *DocService) GetProblems(userID uint, page int) ([]*domain.Problem, int64, error) {
-	return ds.repo.GetProblems(userID, page)
+func (ds *DocService) GetProblems(userID uint, categoryID uint, keyword string, page int) ([]*domain.Problem, int64, error) {
+	return ds.repo.GetProblems(userID, categoryID, keyword, page)
 }
 
 func (ds *DocService) GetCategories(userID uint, page int) ([]domain.Category, int64, error) {
@@ -46,8 +46,8 @@ func (ds *DocService) UploadFile(problemID uint, uploaderID uint, fileName strin
 	return ds.repo.UploadFile(problemID, uploaderID, fileName, src)
 }
 
-func (ds *DocService) DeleteFilesByProblemID(problemID uint) error {
-	return ds.repo.DeleteFilesByProblemID(problemID)
+func (ds *DocService) DeleteFilesByProblemID(problemID, fileID uint) error {
+	return ds.repo.DeleteFilesByProblemID(problemID, fileID)
 }
 
 func (ds *DocService) LoginUser(username, password string) (*domain.User, error) {
@@ -56,4 +56,8 @@ func (ds *DocService) LoginUser(username, password string) (*domain.User, error)
 
 func (ds *DocService) RegisterUser(user *domain.User) (*domain.User, error) {
 	return ds.repo.RegisterUser(user)
+}
+
+func (ds *DocService) ChangePassword(username string, oldPassword, newPassword string) error {
+	return ds.repo.ChangePassword(username, oldPassword, newPassword)
 }

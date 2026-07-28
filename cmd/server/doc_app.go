@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/ingoxx/stock-backend/config"
 	"github.com/ingoxx/stock-backend/internal/domain"
 	"github.com/ingoxx/stock-backend/internal/handler"
 	"github.com/ingoxx/stock-backend/internal/repository/mysql"
@@ -31,10 +32,10 @@ func NewDocApp() *DocApp {
 	var defaultAdmin domain.User
 	err := gd.First(&defaultAdmin, 1).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		hashedPassword, _ := utils.HashPassword("admin123") // 默认初始密码 admin123
+		hashedPassword, _ := utils.HashPassword(config.Pwd) // 默认初始密码 admin123
 		defaultAdmin = domain.User{
 			ID:       1,
-			Username: "admin",
+			Username: config.UserName,
 			Password: hashedPassword,
 		}
 		if err := gd.Create(&defaultAdmin).Error; err != nil {

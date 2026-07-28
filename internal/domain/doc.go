@@ -71,14 +71,15 @@ type FileItem struct {
 
 type DocRepository interface {
 	GetCategories(userID uint, page int) ([]Category, int64, error)
-	GetProblems(userID uint, page int) ([]*Problem, int64, error)
+	GetProblems(userID uint, categoryID uint, keyword string, page int) ([]*Problem, int64, error)
 	CreateCategories(userID uint, data Category) (Category, error)
 	CreateProblems(userID uint, data Problem) (*Problem, error)
 	DeleteCategory(id uint, userID uint) error
 	DeleteProblem(id uint, userID uint) error
 	UpdateProblemCategory(problemID uint, newCategoryID uint, userID uint) error
 	UploadFile(problemID uint, uploaderID uint, fileName string, src io.Reader) (*FileItem, error)
-	DeleteFilesByProblemID(problemID uint) error
+	DeleteFilesByProblemID(problemID, fileID uint) error
 	RegisterUser(user *User) (*User, error)
 	LoginUser(username, password string) (*User, error)
+	ChangePassword(username string, oldPassword, newPassword string) error
 }

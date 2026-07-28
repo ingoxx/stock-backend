@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ingoxx/stock-backend/internal/domain"
@@ -14,7 +15,7 @@ import (
 )
 
 const (
-	pageSize = 10
+	pageSize = 5
 	saveDir  = "/opt/uploads/profile3"
 	url      = "https://ai.anythingai.online/static/profile3"
 )
@@ -117,23 +118,36 @@ func (dr *DocRepo) CreateProblems(userID uint, data domain.Problem) (*domain.Pro
 	return &data, nil
 }
 
-// GetProblems 获取问题列表（带权限隔离 + 返回总记录数 total）
-func (dr *DocRepo) GetProblems(userID uint, page int) ([]*domain.Problem, int64, error) {
+// GetProblems 分页获取问题列表（支持：分类筛选 + 关键字搜索 + 权限隔离 + 返回总条数）
+func (dr *DocRepo) GetProblems(userID uint, categoryID uint, keyword string, page int) ([]*domain.Problem, int64, error) {
 	if page <= 0 {
 		page = 1
 	}
 	offset := (page - 1) * pageSize
 
-	// 构建基础查询条件（权限隔离：只能看自己创建的 OR 别人共享的）
-	query := dr.db.Model(&domain.Problem{}).Where("creator_id = ? OR is_shared = ?", userID, true)
+	// 1. 基础查询条件：权限隔离 (只能看自己创建的 OR 别人共享的)
+	query := dr.db.Model(&domain.Problem{}).Where("(creator_id = ? OR is_shared = ?)", userID, true)
 
-	// 1. 先统计满足条件的记录总数 total
+	// 2. 动态拼接条件一：如果传了 categoryID（大于 0），追加分类筛选
+	if categoryID > 0 {
+		query = query.Where("category_id = ?", categoryID)
+	}
+
+	// 3. 动态拼接条件二：如果传了关键字（非空），同时在标题(title)或解答(solution)中模糊匹配
+	keyword = strings.TrimSpace(keyword) // 去除首尾空格
+	if keyword != "" {
+		pattern := "%" + keyword + "%"
+		// 加括号确保优先级：AND (title LIKE %kw% OR solution LIKE %kw%)
+		query = query.Where("(title LIKE ? OR solution LIKE ?)", pattern, pattern)
+	}
+
+	// 4. 统计满足上述组合条件下的总条数 total
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// 2. 再执行 Preload 和 Limit/Offset 分页查询数据列表
+	// 5. 分页查出当前页的数据列表
 	var dp []*domain.Problem
 	err := query.
 		Preload("Category").
@@ -187,10 +201,10 @@ func (dr *DocRepo) GetCategories(userID uint, page int) ([]domain.Category, int6
 	return ds, total, nil
 }
 
-// DeleteCategory 删除分类（使用事务：仅创建者可删除，并同步清理关联问题和物理文件）
+// DeleteCategory 删除分类（使用事务：仅创建者可删除，并同步清理关联问题、中间表关联和物理文件）
 func (dr *DocRepo) DeleteCategory(categoryID uint, userID uint) error {
 	return dr.db.Transaction(func(tx *gorm.DB) error {
-		// 1. 权限校验
+		// 1. 权限校验：检查分类是否存在且是否为当前用户创建
 		var category domain.Category
 		if err := tx.First(&category, categoryID).Error; err != nil {
 			return err
@@ -205,8 +219,9 @@ func (dr *DocRepo) DeleteCategory(categoryID uint, userID uint) error {
 			return err
 		}
 
-		// 3. 删除分类下问题的附件记录与磁盘物理文件
+		// 3. 如果分类下存在问题，执行级联清理
 		if len(problemIDs) > 0 {
+			// 3.1 查出文件记录并清理物理磁盘文件
 			var files []domain.FileItem
 			_ = tx.Where("problem_id IN ?", problemIDs).Find(&files).Error
 
@@ -214,20 +229,25 @@ func (dr *DocRepo) DeleteCategory(categoryID uint, userID uint) error {
 				return err
 			}
 
-			// 清理磁盘上的附件物理文件
+			// 清理磁盘上的物理文件
 			for _, file := range files {
 				uniqueFilename := filepath.Base(file.URL)
 				localPath := filepath.Join(saveDir, uniqueFilename)
 				_ = os.Remove(localPath)
 			}
 
-			// 删除问题记录
+			// 3.2 关键修复：先删除多对多中间表 problem_editors 中的关联外键记录
+			if err := tx.Exec("DELETE FROM problem_editors WHERE problem_id IN ?", problemIDs).Error; err != nil {
+				return err
+			}
+
+			// 3.3 再删除问题 Problem 记录
 			if err := tx.Where("category_id = ?", categoryID).Delete(&domain.Problem{}).Error; err != nil {
 				return err
 			}
 		}
 
-		// 4. 删除分类本身
+		// 4. 最后删除分类 Category 本身
 		if err := tx.Delete(&domain.Category{}, categoryID).Error; err != nil {
 			return err
 		}
@@ -236,35 +256,48 @@ func (dr *DocRepo) DeleteCategory(categoryID uint, userID uint) error {
 	})
 }
 
-// DeleteProblem 删除问题（仅创建者可删除，同步级联清理附件及磁盘物理文件）
+// DeleteProblem 删除问题/文档（使用事务：仅创建者可删除，100% 安全清理中间表与物理文件）
 func (dr *DocRepo) DeleteProblem(problemID uint, userID uint) error {
-	var problem domain.Problem
-	if err := dr.db.First(&problem, problemID).Error; err != nil {
-		return err
-	}
+	return dr.db.Transaction(func(tx *gorm.DB) error {
+		// 1. 查询当前问题
+		var problem domain.Problem
+		if err := tx.First(&problem, problemID).Error; err != nil {
+			return err
+		}
 
-	if problem.CreatorID != userID {
-		return errors.New("无权删除此文档：只有创建者才能删除")
-	}
+		// 2. 权限校验：仅创建者可以删除
+		if problem.CreatorID != userID {
+			return errors.New("无权删除此文档：只有创建者才能删除")
+		}
 
-	// 查出该问题的所有附件，准备清理磁盘文件
-	var files []domain.FileItem
-	_ = dr.db.Where("problem_id = ?", problemID).Find(&files).Error
+		// 3. 查出关联的附件记录，以便稍后清理本地磁盘物理文件
+		var files []domain.FileItem
+		_ = tx.Where("problem_id = ?", problemID).Find(&files).Error
 
-	// 删除数据库中的 Problem 记录以及关联的中间表关联
-	err := dr.db.Select("Files", "Editors").Delete(&problem).Error
-	if err != nil {
-		return err
-	}
+		// 4.1 先删除附件记录 (file_items)
+		if err := tx.Where("problem_id = ?", problemID).Delete(&domain.FileItem{}).Error; err != nil {
+			return err
+		}
 
-	// 清理磁盘上的物理文件
-	for _, file := range files {
-		uniqueFilename := filepath.Base(file.URL)
-		localPath := filepath.Join(saveDir, uniqueFilename)
-		_ = os.Remove(localPath)
-	}
+		// 4.2 显式清理多对多中间表 (problem_editors)，彻底杜绝 MySQL 1451 外键约束报错
+		if err := tx.Exec("DELETE FROM problem_editors WHERE problem_id = ?", problemID).Error; err != nil {
+			return err
+		}
 
-	return nil
+		// 4.3 删除 Problem 主记录
+		if err := tx.Delete(&problem).Error; err != nil {
+			return err
+		}
+
+		// 5. 数据库清理成功后，删除磁盘上的物理文件
+		for _, file := range files {
+			uniqueFilename := filepath.Base(file.URL)
+			localPath := filepath.Join(saveDir, uniqueFilename)
+			_ = os.Remove(localPath)
+		}
+
+		return nil
+	})
 }
 
 // UpdateProblemCategory 修改指定 Problem 所属分类（要求必须是创建者或开启了共享）
@@ -343,28 +376,26 @@ func (dr *DocRepo) UploadFile(problemID uint, uploaderID uint, fileName string, 
 }
 
 // DeleteFilesByProblemID 删除指定问题下的所有附件文件（已修正磁盘物理文件路径匹配 Bug）
-func (dr *DocRepo) DeleteFilesByProblemID(problemID uint) error {
-	// 1. 先查询出关联的所有 FileItem 记录
-	var files []domain.FileItem
-	if err := dr.db.Where("problem_id = ?", problemID).Find(&files).Error; err != nil {
+func (dr *DocRepo) DeleteFilesByProblemID(problemID, fileID uint) error {
+	// 1. 根据 fileID 和 problemID 双重条件精准查询该文件记录
+	var file domain.FileItem
+	err := dr.db.Where("id = ? AND problem_id = ?", fileID, problemID).First(&file).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("文件记录不存在或不属于当前文档")
+		}
 		return err
 	}
 
-	if len(files) == 0 {
-		return nil
-	}
-
-	// 2. 从 MySQL 中删除记录
-	if err := dr.db.Where("problem_id = ?", problemID).Delete(&domain.FileItem{}).Error; err != nil {
+	// 2. 从 MySQL 数据库中删除这一条记录
+	if err := dr.db.Delete(&file).Error; err != nil {
 		return err
 	}
 
-	// 3. 删除磁盘上的物理文件 (从 URL 中提取唯一的磁盘文件名)
-	for _, file := range files {
-		uniqueFilename := filepath.Base(file.URL)
-		localPath := filepath.Join(saveDir, uniqueFilename)
-		_ = os.Remove(localPath)
-	}
+	// 3. 从服务器磁盘上删除对应的物理文件
+	uniqueFilename := filepath.Base(file.URL)
+	localPath := filepath.Join(saveDir, uniqueFilename)
+	_ = os.Remove(localPath) // 忽略文件可能已被手动删除的错误
 
 	return nil
 }
@@ -413,4 +444,33 @@ func (dr *DocRepo) LoginUser(username, password string) (*domain.User, error) {
 	}
 
 	return &user, nil
+}
+
+// ChangePassword 修改用户密码
+func (dr *DocRepo) ChangePassword(username string, oldPassword, newPassword string) error {
+	var user domain.User
+	// 1. 查找当前用户（按用户名）
+	if err := dr.db.Where("username = ?", username).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("用户不存在")
+		}
+		return err
+	}
+
+	//// 2. 校验旧密码是否正确
+	//if !utils.CheckPassword(user.Password, oldPassword) {
+	//	return errors.New("旧密码不正确")
+	//}
+
+	// 3. 对新密码进行哈希加密
+	hashedPassword, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return errors.New("新密码加密失败: " + err.Error())
+	}
+
+	// 4. 更新数据库中的密码与修改时间
+	return dr.db.Model(&user).Updates(map[string]interface{}{
+		"password":   hashedPassword,
+		"updated_at": time.Now(),
+	}).Error
 }

@@ -16,6 +16,11 @@ type DelReq struct {
 	Id uint `json:"id" form:"id" validate:"required"`
 }
 
+type DelFileByIdReq struct {
+	Id     uint `json:"id" form:"id" validate:"required"`
+	FileId uint `json:"file_id" form:"file_id" validate:"required"`
+}
+
 type RegisterReq struct {
 	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required"`
@@ -29,6 +34,13 @@ type UpdateProblemCategoriesReq struct {
 type LoginReq struct {
 	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required"`
+}
+
+// ChangePasswordReq 修改密码请求结构体
+type ChangePasswordReq struct {
+	Username    string `json:"username" validate:"required"`
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password" validate:"required"`
 }
 
 type DocHandler struct {
@@ -227,6 +239,11 @@ func (dh *DocHandler) GetProblemsHandler(w http.ResponseWriter, r *http.Request)
 		page = "1" // 容错处理：不传默认第 1 页
 	}
 
+	categoryId := queryParams.Get("category_id")
+	if categoryId == "" {
+		page = "1" // 容错处理：不传默认第 1 页
+	}
+
 	p, err := strconv.Atoi(page)
 	if err != nil {
 		utils.ResponseJSON(w, utils.Response{
@@ -237,7 +254,19 @@ func (dh *DocHandler) GetProblemsHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	data, total, err := dh.svc.GetProblems(userID, p)
+	cid, err := strconv.Atoi(categoryId)
+	if err != nil {
+		utils.ResponseJSON(w, utils.Response{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	keyword := queryParams.Get("keyword")
+
+	data, total, err := dh.svc.GetProblems(userID, uint(cid), keyword, p)
 	if err != nil {
 		utils.ResponseJSON(w, utils.Response{
 			Code: 1001,
@@ -473,13 +502,13 @@ func (dh *DocHandler) DeleteFileHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	req, err := bindAndValidate[DelReq](body, dh.vd, func(r *DelReq) {})
+	req, err := bindAndValidate[DelFileByIdReq](body, dh.vd, func(r *DelFileByIdReq) {})
 	if err != nil {
 		writeReqError(w, err)
 		return
 	}
 
-	if err := dh.svc.DeleteFilesByProblemID(req.Id); err != nil {
+	if err := dh.svc.DeleteFilesByProblemID(req.Id, req.FileId); err != nil {
 		utils.ResponseJSON(w, utils.Response{
 			Code: 1001,
 			Msg:  "删除文件失败: " + err.Error(),
@@ -491,6 +520,40 @@ func (dh *DocHandler) DeleteFileHandler(w http.ResponseWriter, r *http.Request) 
 	utils.ResponseJSON(w, utils.Response{
 		Code: 1000,
 		Msg:  "ok",
+		Data: nil,
+	})
+}
+
+// ChangePasswordHandler 修改密码 Handler
+func (dh *DocHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
+
+	//userID := getUserID(r)
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, utils.Response{Code: 1001, Msg: err.Error(), Data: ""})
+		return
+	}
+
+	req, err := bindAndValidate[ChangePasswordReq](body, dh.vd, nil)
+	if err != nil {
+		writeReqError(w, err)
+		return
+	}
+
+	// 调用 service 修改密码
+	if err := dh.svc.ChangePassword(req.Username, req.OldPassword, req.NewPassword); err != nil {
+		utils.ResponseJSON(w, utils.Response{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, utils.Response{
+		Code: 1000,
+		Msg:  "密码修改成功，请重新登录",
 		Data: nil,
 	})
 }

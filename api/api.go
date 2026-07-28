@@ -81,6 +81,7 @@ func Start() {
 	// 文档系统的注册与登录接口（公开）
 	publicMux.HandleFunc("POST /v1/doc/register", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.RegisterHandler).ServeHTTP)
 	publicMux.HandleFunc("POST /v1/doc/login", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.LoginHandler).ServeHTTP)
+	publicMux.HandleFunc("POST /v1/doc/change-password", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.ChangePasswordHandler).ServeHTTP)
 
 	// -------------------------------------------------------------
 	// 3. 文档业务接口 (独占走 JWTAuthMiddleware 验证)
@@ -109,6 +110,7 @@ func Start() {
 	rootMux.Handle("/v1/auth", publicMux)
 	rootMux.Handle("/v1/doc/register", publicMux)
 	rootMux.Handle("/v1/doc/login", publicMux)
+	rootMux.Handle("/v1/doc/change-password", publicMux)
 
 	// 修改点：挂载文档接口，使用经过 JWT 验证包裹的 docAuth
 	rootMux.Handle("/v1/create-category", docAuth)
