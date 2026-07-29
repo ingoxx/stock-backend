@@ -535,3 +535,34 @@ func (dr *DocRepo) ShareProblemToUsers(problemID uint, operatorID uint, targetUs
 	// GORM Replace 自动更新/替换/清空中间表 problem_shares 的映射记录
 	return dr.db.Model(&problem).Association("SharedUsers").Replace(targetUsers)
 }
+
+// GetUserList 分页获取用户列表（支持传入页码翻页，返回用户列表及总记录数 total）
+func (dr *DocRepo) GetUserList(page int) ([]domain.User, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	offset := (page - 1) * pageSize
+
+	query := dr.db.Model(&domain.User{})
+
+	// 1. 统计用户总数
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 2. 分页查询用户列表（Omit("password") 进一步确保安全，避免查出密码哈希）
+	var users []domain.User
+	err := query.
+		Omit("password").
+		Order("id ASC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&users).Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}

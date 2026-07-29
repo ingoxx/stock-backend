@@ -97,6 +97,9 @@ func Start() {
 	docMux.HandleFunc("POST /v1/update-problem-category", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.UpdateProblemCategoryHandler).ServeHTTP)
 	docMux.HandleFunc("POST /v1/upload-file", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.UploadFileHandler).ServeHTTP)
 	docMux.HandleFunc("POST /v1/del-file", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.DeleteFileHandler).ServeHTTP)
+	docMux.HandleFunc("GET /v1/get-users", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.GetUserListHandler).ServeHTTP)
+	docMux.HandleFunc("POST /v1/update-problem-share", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.ShareProblemToUsersHandler).ServeHTTP)
+	docMux.HandleFunc("POST /v1/update-category-share", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.ShareCategoryToUsersHandler).ServeHTTP)
 
 	// 用 JWTAuthMiddleware 仅包裹 docMux
 	docAuth := middleware.JWTAuthMiddleware(docMux)
@@ -122,6 +125,9 @@ func Start() {
 	rootMux.Handle("/v1/update-problem-category", docAuth)
 	rootMux.Handle("/v1/upload-file", docAuth)
 	rootMux.Handle("/v1/del-file", docAuth)
+	rootMux.Handle("/v1/get-users", docAuth)
+	rootMux.Handle("/v1/update-problem-share", docAuth)
+	rootMux.Handle("/v1/update-category-share", docAuth)
 
 	// 兜底挂载：其他所有黄金/股票接口走原有的 authMux
 	rootMux.Handle("/", authMux)

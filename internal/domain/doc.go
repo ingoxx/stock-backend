@@ -84,4 +84,7 @@ type DocRepository interface {
 	RegisterUser(user *User) (*User, error)
 	LoginUser(username, password string) (*User, error)
 	ChangePassword(username string, oldPassword, newPassword string) error
+	ShareCategoryToUsers(categoryID uint, operatorID uint, targetUserIDs []uint) error
+	ShareProblemToUsers(problemID uint, operatorID uint, targetUserIDs []uint) error
+	GetUserList(page int) ([]User, int64, error)
 }

@@ -43,6 +43,18 @@ type ChangePasswordReq struct {
 	NewPassword string `json:"new_password" validate:"required"`
 }
 
+// ShareCategoryReq 分类定向共享请求结构体
+type ShareCategoryReq struct {
+	CategoryID    uint   `json:"category_id" validate:"required"`
+	TargetUserIDs []uint `json:"target_user_ids"` // 要共享的目标用户 ID 列表，传 [] 代表取消全部共享
+}
+
+// ShareProblemReq 问题/文档定向共享请求结构体
+type ShareProblemReq struct {
+	ProblemID     uint   `json:"problem_id" validate:"required"`
+	TargetUserIDs []uint `json:"target_user_ids"` // 要共享的目标用户 ID 列表，传 [] 代表取消全部共享
+}
+
 type DocHandler struct {
 	svc *service.DocService
 	vd  *validator.Validate
@@ -554,6 +566,129 @@ func (dh *DocHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.Reque
 	utils.ResponseJSON(w, utils.Response{
 		Code: 1000,
 		Msg:  "密码修改成功，请重新登录",
+		Data: nil,
+	})
+}
+
+// GetUserListHandler 分页获取用户列表 Handler
+func (dh *DocHandler) GetUserListHandler(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	pageStr := queryParams.Get("page")
+	if pageStr == "" {
+		pageStr = "1"
+	}
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil {
+		utils.ResponseJSON(w, utils.Response{
+			Code: 1001,
+			Msg:  "页码格式错误",
+			Data: "",
+		})
+		return
+	}
+
+	// 调用 service 层
+	list, total, err := dh.svc.GetUserList(page)
+	if err != nil {
+		utils.ResponseJSON(w, utils.Response{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	// 返回标准分页响应结构
+	utils.ResponseJSON(w, utils.Response{
+		Code: 1000,
+		Msg:  "ok",
+		Data: utils.PageData{
+			List:  list,
+			Total: total,
+		},
+	})
+}
+
+// ShareCategoryToUsersHandler 定向共享分类给指定用户 (或取消共享)
+func (dh *DocHandler) ShareCategoryToUsersHandler(w http.ResponseWriter, r *http.Request) {
+	operatorID := getUserID(r)
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, utils.Response{
+			Code: 1001,
+			Msg:  "读取请求体失败: " + err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	req, err := bindAndValidate[ShareCategoryReq](body, dh.vd, nil)
+	if err != nil {
+		writeReqError(w, err)
+		return
+	}
+
+	// 容错处理：如果前端传 nil，转为空切片 []uint{} 以清空共享
+	if req.TargetUserIDs == nil {
+		req.TargetUserIDs = []uint{}
+	}
+
+	// 调用 service/repo 层设置定向共享
+	if err := dh.svc.ShareCategoryToUsers(req.CategoryID, operatorID, req.TargetUserIDs); err != nil {
+		utils.ResponseJSON(w, utils.Response{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, utils.Response{
+		Code: 1000,
+		Msg:  "分类共享设置成功",
+		Data: nil,
+	})
+}
+
+// ShareProblemToUsersHandler 定向共享文档给指定用户 (或取消共享)
+func (dh *DocHandler) ShareProblemToUsersHandler(w http.ResponseWriter, r *http.Request) {
+	operatorID := getUserID(r)
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.ResponseJSON(w, utils.Response{
+			Code: 1001,
+			Msg:  "读取请求体失败: " + err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	req, err := bindAndValidate[ShareProblemReq](body, dh.vd, nil)
+	if err != nil {
+		writeReqError(w, err)
+		return
+	}
+
+	if req.TargetUserIDs == nil {
+		req.TargetUserIDs = []uint{}
+	}
+
+	// 调用 service/repo 层设置定向共享
+	if err := dh.svc.ShareProblemToUsers(req.ProblemID, operatorID, req.TargetUserIDs); err != nil {
+		utils.ResponseJSON(w, utils.Response{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	utils.ResponseJSON(w, utils.Response{
+		Code: 1000,
+		Msg:  "文档共享设置成功",
 		Data: nil,
 	})
 }

@@ -61,3 +61,15 @@ func (ds *DocService) RegisterUser(user *domain.User) (*domain.User, error) {
 func (ds *DocService) ChangePassword(username string, oldPassword, newPassword string) error {
 	return ds.repo.ChangePassword(username, oldPassword, newPassword)
 }
+
+func (ds *DocService) ShareCategoryToUsers(categoryID uint, operatorID uint, targetUserIDs []uint) error {
+	return ds.repo.ShareCategoryToUsers(categoryID, operatorID, targetUserIDs)
+}
+
+func (ds *DocService) ShareProblemToUsers(problemID uint, operatorID uint, targetUserIDs []uint) error {
+	return ds.repo.ShareProblemToUsers(problemID, operatorID, targetUserIDs)
+}
+
+func (ds *DocService) GetUserList(page int) ([]domain.User, int64, error) {
+	return ds.repo.GetUserList(page)
+}
