@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
@@ -691,4 +693,46 @@ func (dh *DocHandler) ShareProblemToUsersHandler(w http.ResponseWriter, r *http.
 		Msg:  "文档共享设置成功",
 		Data: nil,
 	})
+}
+
+// DownloadFileHandler 文件下载 Handler
+func (dh *DocHandler) DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+
+	// 1. 获取 URL Query 参数中的 file_id (如 GET /v1/download-file?file_id=1001)
+	fileIDStr := r.URL.Query().Get("file_id")
+	if fileIDStr == "" {
+		fileIDStr = r.URL.Query().Get("id")
+	}
+
+	fileID, err := strconv.ParseUint(fileIDStr, 10, 64)
+	if err != nil || fileID == 0 {
+		utils.ResponseJSON(w, utils.Response{
+			Code: 1001,
+			Msg:  "缺少或无效的 file_id 参数",
+			Data: "",
+		})
+		return
+	}
+
+	// 2. 调用 Service 获取文件本地物理路径和原文件名（内部已做权限与存在性校验）
+	localPath, originalName, err := dh.svc.GetFileForDownload(uint(fileID), userID)
+	if err != nil {
+		utils.ResponseJSON(w, utils.Response{
+			Code: 1001,
+			Msg:  err.Error(),
+			Data: "",
+		})
+		return
+	}
+
+	// 3. 对中文文件名做 URL Encode 编码，防止 Header 中的中文导致乱码或浏览器报错
+	encodedFilename := url.QueryEscape(originalName)
+
+	// 4. 设置 HTTP 响应头，指示浏览器触发弹窗下载（Content-Disposition: attachment）
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"; filename*=UTF-8''%s", encodedFilename, encodedFilename))
+	w.Header().Set("Content-Type", "application/octet-stream")
+
+	// 5. 使用 Go 原生 http.ServeFile 将文件以高效二进制流的形式返回给客户端
+	http.ServeFile(w, r, localPath)
 }

@@ -382,7 +382,8 @@ func (dr *DocRepo) UploadFile(problemID uint, uploaderID uint, fileName string, 
 	}
 
 	// 2. 生成唯一文件名
-	uniqueFilename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), fileName)
+	//uniqueFilename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), fileName)
+	uniqueFilename := fileName
 	savePath := filepath.Join(saveDir, uniqueFilename)
 
 	// 3. 创建磁盘文件并写入数据
@@ -565,4 +566,44 @@ func (dr *DocRepo) GetUserList(page int) ([]domain.User, int64, error) {
 	}
 
 	return users, total, nil
+}
+
+// GetFileForDownload 查询并校验待下载附件（返回本地磁盘物理路径与原始文件名）
+func (dr *DocRepo) GetFileForDownload(fileID uint, userID uint) (string, string, error) {
+	// 1. 查找附件记录
+	var fileItem domain.FileItem
+	if err := dr.db.First(&fileItem, fileID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", "", errors.New("附件记录不存在")
+		}
+		return "", "", err
+	}
+
+	// 2. 权限校验：检查归属的 Problem 是否允许当前用户访问/下载
+	var problem domain.Problem
+	if err := dr.db.First(&problem, fileItem.ProblemID).Error; err != nil {
+		return "", "", errors.New("归属的文档不存在")
+	}
+
+	var isTargetShared int64
+	_ = dr.db.Table("problem_shares").Where("problem_id = ? AND user_id = ?", problem.ID, userID).Count(&isTargetShared)
+
+	// 如果既不是创建者，也不是全员公开，也没有被定向共享，则拒绝下载
+	if problem.CreatorID != userID && !problem.IsShared && isTargetShared == 0 {
+		return "", "", errors.New("无权下载此文档的附件")
+	}
+
+	// 3. 从 URL 提取磁盘上的文件名并拼接本地绝对路径
+	uniqueFilename := filepath.Base(fileItem.URL)
+	localPath := filepath.Join(saveDir, uniqueFilename)
+
+	// 4. 检查磁盘物理文件是否存在
+
+	if _, err := os.Stat(localPath); os.IsNotExist(err) {
+		return "", "", errors.New("服务器物理文件不存在或已被删除")
+	}
+
+	fmt.Println("file >>> ", localPath, fileItem.Name)
+
+	return localPath, fileItem.Name, nil
 }

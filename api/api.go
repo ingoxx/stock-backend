@@ -100,6 +100,7 @@ func Start() {
 	docMux.HandleFunc("GET /v1/get-users", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.GetUserListHandler).ServeHTTP)
 	docMux.HandleFunc("POST /v1/update-problem-share", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.ShareProblemToUsersHandler).ServeHTTP)
 	docMux.HandleFunc("POST /v1/update-category-share", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.ShareCategoryToUsersHandler).ServeHTTP)
+	docMux.HandleFunc("GET /v1/download-file", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.DownloadFileHandler).ServeHTTP)
 
 	// 用 JWTAuthMiddleware 仅包裹 docMux
 	docAuth := middleware.JWTAuthMiddleware(docMux)
@@ -128,6 +129,7 @@ func Start() {
 	rootMux.Handle("/v1/get-users", docAuth)
 	rootMux.Handle("/v1/update-problem-share", docAuth)
 	rootMux.Handle("/v1/update-category-share", docAuth)
+	rootMux.Handle("/v1/download-file", docAuth)
 
 	// 兜底挂载：其他所有黄金/股票接口走原有的 authMux
 	rootMux.Handle("/", authMux)

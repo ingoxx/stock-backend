@@ -73,3 +73,7 @@ func (ds *DocService) ShareProblemToUsers(problemID uint, operatorID uint, targe
 func (ds *DocService) GetUserList(page int) ([]domain.User, int64, error) {
 	return ds.repo.GetUserList(page)
 }
+
+func (ds *DocService) GetFileForDownload(fileID uint, userID uint) (string, string, error) {
+	return ds.repo.GetFileForDownload(fileID, userID)
+}

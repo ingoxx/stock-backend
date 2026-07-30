@@ -87,4 +87,5 @@ type DocRepository interface {
 	ShareCategoryToUsers(categoryID uint, operatorID uint, targetUserIDs []uint) error
 	ShareProblemToUsers(problemID uint, operatorID uint, targetUserIDs []uint) error
 	GetUserList(page int) ([]User, int64, error)
+	GetFileForDownload(fileID uint, userID uint) (string, string, error)
 }

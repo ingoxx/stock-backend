@@ -15,7 +15,6 @@ const UserIDKey contextKey = "userID"
 func JWTAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sign := r.FormValue("sign")
-
 		if sign == "" {
 			utils.ResponseJSON(w, utils.Response{
 				Code: 401,
