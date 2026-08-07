@@ -1,9 +1,16 @@
 package service
 
 import (
+	"errors"
 	"io"
+	"os"
+	"strings"
 
 	"github.com/ingoxx/stock-backend/internal/domain"
+)
+
+const (
+	secretFile = "/tmp/sc.txt"
 )
 
 type DocService struct {
@@ -58,8 +65,28 @@ func (ds *DocService) RegisterUser(user *domain.User) (*domain.User, error) {
 	return ds.repo.RegisterUser(user)
 }
 
-func (ds *DocService) ChangePassword(username string, oldPassword, newPassword string) error {
-	return ds.repo.ChangePassword(username, oldPassword, newPassword)
+func (ds *DocService) ChangePassword(username, oldPassword, newPassword, sc string) error {
+	stat, err := os.Stat(secretFile)
+	if err != nil {
+		return errors.New("口令错误0")
+	}
+
+	if stat.Size() == 0 {
+		return errors.New("口令错误1")
+	}
+
+	file, err := os.ReadFile(secretFile)
+	if err != nil {
+		return err
+	}
+
+	secret := strings.TrimSpace(string(file))
+
+	if secret != sc {
+		return errors.New("口令错误2")
+	}
+
+	return ds.repo.ChangePassword(username, oldPassword, newPassword, "")
 }
 
 func (ds *DocService) ShareCategoryToUsers(categoryID uint, operatorID uint, targetUserIDs []uint) error {

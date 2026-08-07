@@ -41,6 +41,7 @@ type LoginReq struct {
 // ChangePasswordReq 修改密码请求结构体
 type ChangePasswordReq struct {
 	Username    string `json:"username" validate:"required"`
+	SecretCode  string `json:"secret_code" validate:"required"`
 	OldPassword string `json:"old_password"`
 	NewPassword string `json:"new_password" validate:"required"`
 }
@@ -556,7 +557,7 @@ func (dh *DocHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// 调用 service 修改密码
-	if err := dh.svc.ChangePassword(req.Username, req.OldPassword, req.NewPassword); err != nil {
+	if err := dh.svc.ChangePassword(req.Username, req.OldPassword, req.NewPassword, req.SecretCode); err != nil {
 		utils.ResponseJSON(w, utils.Response{
 			Code: 1001,
 			Msg:  err.Error(),

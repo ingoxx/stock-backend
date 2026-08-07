@@ -477,7 +477,7 @@ func (dr *DocRepo) LoginUser(username, password string) (*domain.User, error) {
 }
 
 // ChangePassword 修改用户密码
-func (dr *DocRepo) ChangePassword(username string, oldPassword, newPassword string) error {
+func (dr *DocRepo) ChangePassword(username, oldPassword, newPassword, sc string) error {
 	var user domain.User
 	if err := dr.db.Where("username = ?", username).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
