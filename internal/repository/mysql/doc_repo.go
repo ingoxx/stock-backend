@@ -6,9 +6,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis"
+	"github.com/ingoxx/stock-backend/config"
 	"github.com/ingoxx/stock-backend/internal/domain"
 	"github.com/ingoxx/stock-backend/utils"
 	"gorm.io/gorm"
@@ -21,12 +24,14 @@ const (
 )
 
 type DocRepo struct {
-	db *gorm.DB
+	db     *gorm.DB
+	client *redis.Client
 }
 
-func NewDocRepo(db *gorm.DB) domain.DocRepository {
+func NewDocRepo(db *gorm.DB, client *redis.Client) domain.DocRepository {
 	return &DocRepo{
-		db: db,
+		db:     db,
+		client: client,
 	}
 }
 
@@ -459,21 +464,33 @@ func (dr *DocRepo) RegisterUser(user *domain.User) (*domain.User, error) {
 }
 
 // LoginUser 用户登录校验
-func (dr *DocRepo) LoginUser(username, password string) (*domain.User, error) {
+func (dr *DocRepo) LoginUser(username, password string) (*domain.User, string, error) {
 	var user domain.User
 
 	if err := dr.db.Where("username = ?", username).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("用户名或密码错误")
+			return nil, "", errors.New("用户名或密码错误")
 		}
-		return nil, err
+		return nil, "", err
 	}
 
 	if !utils.CheckPassword(user.Password, password) {
-		return nil, errors.New("用户名或密码错误")
+		return nil, "", errors.New("用户名或密码错误")
 	}
 
-	return &user, nil
+	// 2. 登录成功，生成 JWT Token
+	token, err := utils.GenerateToken(user.ID, user.Username)
+	if err != nil {
+		return nil, "", fmt.Errorf("生成 Token 失败: %s", err.Error())
+	}
+
+	// 3. 将token保存到redis
+	field := strconv.Itoa(int(user.ID))
+	if err := dr.client.HSet(config.Jak, field, token).Err(); err != nil {
+		return nil, "", fmt.Errorf("缓存 token 失败: %s", err.Error())
+	}
+
+	return &user, token, nil
 }
 
 // ChangePassword 修改用户密码

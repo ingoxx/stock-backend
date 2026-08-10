@@ -57,7 +57,7 @@ func (ds *DocService) DeleteFilesByProblemID(problemID, fileID uint) error {
 	return ds.repo.DeleteFilesByProblemID(problemID, fileID)
 }
 
-func (ds *DocService) LoginUser(username, password string) (*domain.User, error) {
+func (ds *DocService) LoginUser(username, password string) (*domain.User, string, error) {
 	return ds.repo.LoginUser(username, password)
 }
 

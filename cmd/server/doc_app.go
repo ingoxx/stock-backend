@@ -5,21 +5,27 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/go-redis/redis"
 	"github.com/ingoxx/stock-backend/config"
 	"github.com/ingoxx/stock-backend/internal/domain"
 	"github.com/ingoxx/stock-backend/internal/handler"
 	"github.com/ingoxx/stock-backend/internal/repository/mysql"
 	"github.com/ingoxx/stock-backend/internal/service"
 	"github.com/ingoxx/stock-backend/pkg/initial/my"
+	"github.com/ingoxx/stock-backend/pkg/initial/rds"
 	"github.com/ingoxx/stock-backend/utils"
 	"gorm.io/gorm"
+)
+
+var (
+	db = 10
 )
 
 type DocApp struct {
 	DocHandler *handler.DocHandler
 }
 
-func NewDocApp() *DocApp {
+func NewDocApp(rc map[int]*redis.Client) *DocApp {
 	validate := validator.New()
 	gd := my.InitMy()
 
@@ -74,7 +80,8 @@ func NewDocApp() *DocApp {
 			"uploader_id": defaultAdmin.ID,
 		})
 
-	docRepo := mysql.NewDocRepo(gd)
+	rs := rds.GetRedisClient(db, rc)
+	docRepo := mysql.NewDocRepo(gd, rs)
 	docSvc := service.NewDocService(docRepo)
 	docHandler := handler.NewDocHandler(docSvc, validate)
 

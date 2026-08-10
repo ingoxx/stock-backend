@@ -4,16 +4,21 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/go-redis/redis"
+	"github.com/ingoxx/stock-backend/cmd/server"
 	"github.com/ingoxx/stock-backend/utils"
 )
 
 type contextKey string
 
-const UserIDKey contextKey = "userID"
+const (
+	UserIDKey contextKey = "userID"
+)
 
 // JWTAuthMiddleware 验证 Token 并注入 userID 到 Context 的中间件
-func JWTAuthMiddleware(next http.Handler) http.Handler {
+func JWTAuthMiddleware(next http.Handler, rc map[int]*redis.Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		sign := r.FormValue("sign")
 		if sign == "" {
 			utils.ResponseJSON(w, utils.Response{
@@ -24,23 +29,44 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// 2. 检查格式是否为：Bearer <token>
-		//parts := strings.SplitN(sign, " ", 2)
-		//if !(len(parts) == 2 && parts[0] == "Bearer") {
-		//	utils.ResponseJSON(w, utils.Response{
-		//		Code: 401,
-		//		Msg:  "Token 格式错误(格式应为: Bearer <token>)",
-		//		Data: "",
-		//	})
-		//	return
-		//}
-
-		// 3. 校验并解析 Token
-		claims, err := utils.ParseToken(sign)
-		if err != nil {
+		user := r.FormValue("uid")
+		if user == "" {
 			utils.ResponseJSON(w, utils.Response{
 				Code: 401,
-				Msg:  "Token 无效或已过期: " + err.Error(),
+				Msg:  "未提供用户，请先登录",
+				Data: "",
+			})
+			return
+		}
+
+		mapLock.RLock()
+		app := server.NewVerifyApp(rc)
+		mapLock.RUnlock()
+
+		if err := app.VerifyService.GetJwtToken(user, sign); err != nil {
+			utils.ResponseJSON(w, utils.Response{
+				Code: 401,
+				Msg:  err.Error(),
+				Data: "",
+			})
+			return
+		}
+
+		claims, err := utils.ParseToken(sign)
+		if err != nil {
+			if err := app.VerifyService.DelJwtToken(user); err != nil {
+				utils.ResponseJSON(w, utils.Response{
+					Code: 401,
+					Msg:  err.Error(),
+					Data: "",
+				})
+
+				return
+			}
+
+			utils.ResponseJSON(w, utils.Response{
+				Code: 401,
+				Msg:  "Token 无效或已过期",
 				Data: "",
 			})
 			return

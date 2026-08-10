@@ -18,7 +18,7 @@ func Start() {
 	goldenApp := server.NewGoldenApp(rdbConn)
 	stockApp := server.NewStockApp(rdbConn)
 	verifyApp := server.NewVerifyApp(rdbConn)
-	docApp := server.NewDocApp()
+	docApp := server.NewDocApp(rdbConn)
 
 	lmt := tollbooth.NewLimiter(config.MaxReqFrequency, nil)
 
@@ -78,6 +78,7 @@ func Start() {
 	// -------------------------------------------------------------
 	publicMux := http.NewServeMux()
 	publicMux.HandleFunc("POST /v1/auth", tollbooth.LimitFuncHandler(lmt, verifyApp.VerifyHandler.Auth).ServeHTTP)
+
 	// 文档系统的注册与登录接口（公开）
 	publicMux.HandleFunc("POST /v1/doc/register", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.RegisterHandler).ServeHTTP)
 	publicMux.HandleFunc("POST /v1/doc/login", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.LoginHandler).ServeHTTP)
@@ -101,9 +102,10 @@ func Start() {
 	docMux.HandleFunc("POST /v1/update-problem-share", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.ShareProblemToUsersHandler).ServeHTTP)
 	docMux.HandleFunc("POST /v1/update-category-share", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.ShareCategoryToUsersHandler).ServeHTTP)
 	docMux.HandleFunc("GET /v1/download-file", tollbooth.LimitFuncHandler(lmt, docApp.DocHandler.DownloadFileHandler).ServeHTTP)
+	docMux.HandleFunc("POST /v1/loginout", tollbooth.LimitFuncHandler(lmt, verifyApp.VerifyHandler.LoginOutHandler).ServeHTTP)
 
 	// 用 JWTAuthMiddleware 仅包裹 docMux
-	docAuth := middleware.JWTAuthMiddleware(docMux)
+	docAuth := middleware.JWTAuthMiddleware(docMux, rdbConn)
 
 	// -------------------------------------------------------------
 	// 4. 总路由控制挂载
@@ -130,6 +132,7 @@ func Start() {
 	rootMux.Handle("/v1/update-problem-share", docAuth)
 	rootMux.Handle("/v1/update-category-share", docAuth)
 	rootMux.Handle("/v1/download-file", docAuth)
+	rootMux.Handle("/v1/loginout", docAuth)
 
 	// 兜底挂载：其他所有黄金/股票接口走原有的 authMux
 	rootMux.Handle("/", authMux)

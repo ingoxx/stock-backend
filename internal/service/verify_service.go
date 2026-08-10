@@ -13,3 +13,11 @@ func NewVerifyService(repo domain.VerifyRepository) *VerifyService {
 func (vs *VerifyService) GetAuthData(vd string) error {
 	return vs.repo.GetAuthData(vd)
 }
+
+func (vs *VerifyService) GetJwtToken(user, jt string) error {
+	return vs.repo.GetJwtToken(user, jt)
+}
+
+func (vs *VerifyService) DelJwtToken(user string) error {
+	return vs.repo.DelJwtToken(user)
+}

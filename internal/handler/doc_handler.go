@@ -137,22 +137,11 @@ func (dh *DocHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 1. 校验账号密码
-	user, err := dh.svc.LoginUser(req.Username, req.Password)
+	user, token, err := dh.svc.LoginUser(req.Username, req.Password)
 	if err != nil {
 		utils.ResponseJSON(w, utils.Response{
 			Code: 1001,
 			Msg:  err.Error(),
-			Data: "",
-		})
-		return
-	}
-
-	// 2. 登录成功，生成 JWT Token
-	token, err := utils.GenerateToken(user.ID, user.Username)
-	if err != nil {
-		utils.ResponseJSON(w, utils.Response{
-			Code: 1001,
-			Msg:  "生成 Token 失败: " + err.Error(),
 			Data: "",
 		})
 		return

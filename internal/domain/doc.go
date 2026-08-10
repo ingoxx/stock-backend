@@ -82,7 +82,7 @@ type DocRepository interface {
 	UploadFile(problemID uint, uploaderID uint, fileName string, src io.Reader) (*FileItem, error)
 	DeleteFilesByProblemID(problemID, fileID uint) error
 	RegisterUser(user *User) (*User, error)
-	LoginUser(username, password string) (*User, error)
+	LoginUser(username, password string) (*User, string, error)
 	ChangePassword(username, oldPassword, newPassword, sc string) error
 	ShareCategoryToUsers(categoryID uint, operatorID uint, targetUserIDs []uint) error
 	ShareProblemToUsers(problemID uint, operatorID uint, targetUserIDs []uint) error
